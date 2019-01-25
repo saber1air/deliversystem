@@ -12,16 +12,14 @@ import com.deliver.mapbody.DeliverRecordParam;
 import com.deliver.util.AppPushUtils;
 import com.deliver.util.ResultInfo;
 import com.gexin.rp.sdk.base.IPushResult;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.xml.transform.Result;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by pdl on 2018/9/13.
@@ -42,6 +40,9 @@ public class DeliverRecordService {
 
     @Autowired
     private HumanInfoDao humanInfoDao;
+
+    @Autowired
+    private HumanInfoService humanInfoService;
 
     @Autowired
     private GeTuiRecordDao geTuiRecordDao;
@@ -98,7 +99,7 @@ public class DeliverRecordService {
                 sql += " and a.deliver_time>=DATE_FORMAT('" + deliverRecordParam.getBeginTime() + "','%Y-%m-%d') ";
             }
             if (deliverRecordParam.getEndTime() != null && deliverRecordParam.getEndTime() != "") {
-                sql += " and a.deliver_time<=DATE_FORMAT('" + deliverRecordParam.getEndTime() + "','%Y-%m-%d') ";
+                sql += " and a.deliver_time<=DATE_SUB(DATE_FORMAT('" + deliverRecordParam.getEndTime() + "','%Y-%m-%d'),INTERVAL -1 DAY)";
             }
             sql += ") x LEFT JOIN (select s.deliverid,h.human_name as parent_name from tc_deliver_record s,tc_human_info h " +
                     "where s.parentid=h.humanid) y on x.deliverid=y.deliverid ORDER BY x.deliver_time DESC";
@@ -124,7 +125,7 @@ public class DeliverRecordService {
                 sql += " and a.deliver_time>=DATE_FORMAT('" + deliverRecordParam.getBeginTime() + "','%Y-%m-%d') ";
             }
             if (deliverRecordParam.getEndTime() != null && deliverRecordParam.getEndTime() != "") {
-                sql += " and a.deliver_time<=DATE_FORMAT('" + deliverRecordParam.getEndTime() + "','%Y-%m-%d') ";
+                sql += " and a.deliver_time<=DATE_SUB(DATE_FORMAT('" + deliverRecordParam.getEndTime() + "','%Y-%m-%d'),INTERVAL -1 DAY)";
             }
             sql += ") x LEFT JOIN (select s.deliverid,h.human_name as student_name from tc_deliver_record s,tc_human_info h " +
                     "where s.studentid=h.humanid) y on x.deliverid=y.deliverid ORDER BY x.deliver_time DESC";
@@ -153,7 +154,7 @@ public class DeliverRecordService {
                 sql += " and a.deliver_time>=DATE_FORMAT('" + deliverRecordParam.getBeginTime() + "','%Y-%m-%d') ";
             }
             if (deliverRecordParam.getEndTime() != null && deliverRecordParam.getEndTime() != "") {
-                sql += " and a.deliver_time<=DATE_FORMAT('" + deliverRecordParam.getEndTime() + "','%Y-%m-%d') ";
+                sql += " and a.deliver_time<=DATE_SUB(DATE_FORMAT('" + deliverRecordParam.getEndTime() + "','%Y-%m-%d'),INTERVAL -1 DAY)";
             }
             sql += ") x LEFT JOIN (select s.deliverid,h.human_name as student_name from tc_deliver_record s,tc_human_info h " +
                     "where s.studentid=h.humanid) y on x.deliverid=y.deliverid  ORDER BY x.deliver_time DESC";
@@ -170,9 +171,10 @@ public class DeliverRecordService {
         ResultInfo resultInfo = new ResultInfo(false);
         if (humanlist != null && humanlist.size() > 0) {
             for (HumanInfo human : humanlist) {
+                String media = null;
                 if (human.getAtschoolFlag() == 0) {
                     content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" + date + "未入园";
-                } else if(human.getAtschoolFlag() == 1){
+                } else if (human.getAtschoolFlag() == 1) {
                     String sql = "select * from (select t.deliverid,t.checkresult,t.access_type,t.deliver_time," +
                             "t.deliver_type,t.media,t.message,t.operateid,t.schoolid,a.human_name from tc_deliver_record t\n" +
                             "LEFT JOIN tc_human_info a on  t.parentid=a.humanid where t.studentid=" + human.getHumanID() + " and " +
@@ -182,12 +184,13 @@ public class DeliverRecordService {
 
                     if (geTuiHumanList != null && geTuiHumanList.size() > 0) {
                         Integer deliverType = (Integer) geTuiHumanList.get(0).get("deliver_type");
+                        media = (String) geTuiHumanList.get(0).get("media");
                         if (deliverType == 1) {
                             if (geTuiHumanList.get(0).get("human_name") != null) {
                                 if (geTuiHumanList.get(0).get("human_name") == "陌生人") {
                                     content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" +
                                             geTuiHumanList.get(0).get("deliver_time") + "由系统未录入家属接送入园";
-                                }else {
+                                } else {
                                     content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" +
                                             geTuiHumanList.get(0).get("deliver_time") + "由" + geTuiHumanList.get(0).get("human_name") + "接送入园";
                                 }
@@ -212,21 +215,28 @@ public class DeliverRecordService {
                                 "from tc_parent_student_rel b1 where b1.humanid = "+human.getHumanID()+" or b1.homeid = "+human.getHumanID()+") GROUP BY t1.humanid)";
 */
 
-                    }else{
+                    } else {
                         content = "尊敬的家长，您的小孩" + human.getHumanName() + "昨天未出园，今天于" + date + "未入园";
                     }
-                }else{
+                } else {
                     content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" + date + "未入园";
                 }
 
-                String ssql = "select b.human_name,b.humanid,b.tel,b.clientid from tc_parent_student_rel a,tc_human_info b where a.humanid="+ human.getHumanID() +
-                        " and a.homeid=b.humanid and b.delete_flag=0 and a.delete_flag=0 and a.check_flag=1 and b.check_flag=1";
+                String ssql = "select b.human_name,b.humanid,b.tel,b.clientid from tc_parent_student_rel a,tc_human_info b where a.humanid=" + human.getHumanID() +
+                        " and a.homeid=b.humanid and b.delete_flag=0 and a.delete_flag=0 and a.check_flag=1 and b.check_flag=1 ";
 
                 List<Map<String, Object>> parentList = jdbcTemplate.queryForList(ssql);
                 Map<String, String> msg = new HashMap<String, String>();
+
+                Map<String, Object> transText = new HashMap<String, Object>();
+
+                transText.put("content",content);
+                transText.put("type",1);
+                JSONObject json = new JSONObject(transText);
+
                 msg.put("title", "入园消息！");
                 msg.put("titleText", content);
-                msg.put("transText", "");
+                msg.put("transText", json.toString());
 
 
                 AppPushUtils pushUtils = new AppPushUtils(appId, appKey, masterSecret);
@@ -235,8 +245,10 @@ public class DeliverRecordService {
                     for (Map map : parentList) {
                         System.out.println("正在发送消息...");
                         if (map.get("clientid") != null) {
-                            IPushResult ret = pushUtils.pushMsgToSingle(map.get("clientid").toString(), msg);
-                            System.out.println(ret.getResponse().toString());
+                            if(map.get("receive_deliver_getui_flag")!=null && (Integer)map.get("receive_deliver_getui_flag")==1) {
+                                IPushResult ret = pushUtils.pushMsgToSingle(map.get("clientid").toString(), msg);
+                            }
+
                             GeTueRecord GeTueRecord = new GeTueRecord();
                             GeTueRecord.setGetuiTime(new Date());
                             GeTueRecord.setMessage(content);
@@ -245,7 +257,12 @@ public class DeliverRecordService {
                             GeTueRecord.setSchoolID(human.getSchoolID());
                             GeTueRecord.setStudentID(human.getHumanID());
                             GeTueRecord.setAccessType(1);
+                            GeTueRecord.setMedia(media);
                             geTuiRecordDao.save(GeTueRecord);
+
+                            HumanInfo humanInfo = humanInfoDao.findByHumanIDAndDeleteFlag((Integer) map.get("humanid"),0);
+                            humanInfo.setDeliverNotReadNum(humanInfo.getDeliverNotReadNum()+1);
+                            humanInfoService.editHuman(humanInfo);
                         }
                     }
                 }
@@ -281,6 +298,7 @@ public class DeliverRecordService {
         ResultInfo resultInfo = new ResultInfo(false);
         if (humanlist != null && humanlist.size() > 0) {
             for (HumanInfo human : humanlist) {
+                String media=null;
                 if (human.getAtschoolFlag() == 1) {
                     content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" + date + "未离园";
                 } else if (human.getAtschoolFlag() == 0) {
@@ -293,12 +311,13 @@ public class DeliverRecordService {
 
                     if (geTuiHumanList != null && geTuiHumanList.size() > 0) {
                         Integer deliverType = (Integer) geTuiHumanList.get(0).get("deliver_type");
+                        media = (String) geTuiHumanList.get(0).get("media");
                         if (deliverType == 1) {
                             if (geTuiHumanList.get(0).get("human_name") != null) {
                                 if (geTuiHumanList.get(0).get("human_name") == "陌生人") {
                                     content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" +
                                             geTuiHumanList.get(0).get("deliver_time") + "由系统未录入家属接送出园";
-                                }else {
+                                } else {
                                     content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" +
                                             geTuiHumanList.get(0).get("deliver_time") + "由" + geTuiHumanList.get(0).get("human_name") + "接送出园";
                                 }
@@ -323,20 +342,26 @@ public class DeliverRecordService {
                                 "from tc_parent_student_rel b1 where b1.humanid = "+human.getHumanID()+" or b1.homeid = "+human.getHumanID()+") GROUP BY t1.humanid)";
 */
 
-                    }else{
+                    } else {
                         content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" + date + "没有进出园信息。";
                     }
-                }else{
+                } else {
                     content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" + date + "没有进出园信息。";
                 }
-                String ssql = "select b.human_name,b.humanid,b.tel,b.clientid from tc_parent_student_rel a,tc_human_info b where a.humanid="+ human.getHumanID() +
+                String ssql = "select b.human_name,b.humanid,b.tel,b.clientid from tc_parent_student_rel a,tc_human_info b where a.humanid=" + human.getHumanID() +
                         " and a.homeid=b.humanid and b.delete_flag=0 and a.delete_flag=0 and a.check_flag=1 and b.check_flag=1";
 
                 List<Map<String, Object>> parentList = jdbcTemplate.queryForList(ssql);
                 Map<String, String> msg = new HashMap<String, String>();
+
+                Map<String, Object> transText = new HashMap<String, Object>();
+
+                transText.put("content",content);
+                transText.put("type",1);
+                JSONObject json = new JSONObject(transText);
                 msg.put("title", "出园消息！");
                 msg.put("titleText", content);
-                msg.put("transText", "");
+                msg.put("transText", json.toString());
 
                 /*String appId = "jPX0kbnuCc8Og0gmSBnu3";
                 String appKey = "Og6qT7rLNN9fixE8O7ppR4";
@@ -347,8 +372,10 @@ public class DeliverRecordService {
                     for (Map map : parentList) {
                         System.out.println("正在发送消息...");
                         if (map.get("clientid") != null) {
-                            IPushResult ret = pushUtils.pushMsgToSingle(map.get("clientid").toString(), msg);
-                            System.out.println(ret.getResponse().toString());
+                            if(map.get("receive_deliver_getui_flag")!=null && (Integer)map.get("receive_deliver_getui_flag")==1) {
+                                IPushResult ret = pushUtils.pushMsgToSingle(map.get("clientid").toString(), msg);
+                            }
+
                             GeTueRecord GeTueRecord = new GeTueRecord();
                             GeTueRecord.setGetuiTime(new Date());
                             GeTueRecord.setMessage(content);
@@ -357,7 +384,12 @@ public class DeliverRecordService {
                             GeTueRecord.setSchoolID(human.getSchoolID());
                             GeTueRecord.setStudentID(human.getHumanID());
                             GeTueRecord.setAccessType(0);
+                            GeTueRecord.setMedia(media);
                             geTuiRecordDao.save(GeTueRecord);
+
+                            HumanInfo humanInfo = humanInfoDao.findByHumanIDAndDeleteFlag((Integer) map.get("humanid"),0);
+                            humanInfo.setDeliverNotReadNum(humanInfo.getDeliverNotReadNum()+1);
+                            humanInfoService.editHuman(humanInfo);
                         }
                     }
                 }
@@ -384,100 +416,328 @@ public class DeliverRecordService {
         return resultInfo;
     }
 
-    public ResultInfo deliverRecordQueryByAdult(int humanid,String humanName,int humanType,String beginTime,String endTime){
+    public ResultInfo deliverRecordQueryByAdult(int humanid, String humanName, int humanType, String beginTime, String endTime) {
         String sql = "";
-        String ssql =  "";
+        String ssql = "";
         ResultInfo resultInfo = new ResultInfo(false);
-        if(humanType==1){
+        if (humanType == 1) {
             sql = "select DISTINCT c.humanid,c.human_name from tc_parent_student_rel t,tc_human_info c " +
                     "where t.homeid in (select a.homeid from tc_parent_student_rel a " +
-                    "where (a.homeid="+humanid+" or a.humanid="+humanid+")) and \n" +
+                    "where (a.homeid=" + humanid + " or a.humanid=" + humanid + ")) and \n" +
                     " t.humanid=c.humanid and c.human_type=0";
-            List<Map<String,Object>> relhumanlist = jdbcTemplate.queryForList(sql);
-            if(humanName!=null && !humanName.equals("")){
-                if(relhumanlist!=null && relhumanlist.size()>0){
-                    for(Map human:relhumanlist){
-                        if(human.get("human_name").equals(humanName)){
+            List<Map<String, Object>> relhumanlist = jdbcTemplate.queryForList(sql);
+            if (humanName != null && !humanName.equals("")) {
+                if (relhumanlist != null && relhumanlist.size() > 0) {
+                    for (Map human : relhumanlist) {
+                        if (human.get("human_name").equals(humanName)) {
                             ssql = "select a.deliverid,a.deliver_time,a.deliver_type,a.access_type,a.checkresult," +
                                     "a.media,a.message,a.studentid,b.human_name as student_name,a.parentid," +
                                     "c.human_name as parent_name\n" +
                                     "from tc_deliver_record a LEFT JOIN tc_human_info c on a.parentid=c.humanid," +
-                                    "tc_human_info b where a.studentid="+human.get("humanid")+" and a.studentid=b.humanid ";
-                            if(beginTime!=null && !beginTime.equals("")){
-                                ssql +=" and a.deliver_time>DATE_FORMAT('"+beginTime+"','%Y-%m-%d %h:%i:%s') ";
+                                    "tc_human_info b where a.studentid=" + human.get("humanid") + " and a.studentid=b.humanid ";
+                            if (beginTime != null && !beginTime.equals("")) {
+                                ssql += " and a.deliver_time>DATE_FORMAT('" + beginTime + "','%Y-%m-%d %h:%i:%s') ";
                             }
 
-                            if(endTime!=null && !endTime.equals("")){
-                                ssql +=" and a.deliver_time<DATE_FORMAT('"+endTime+"','%Y-%m-%d %h:%i:%s') ";
+                            if (endTime != null && !endTime.equals("")) {
+                                ssql += " and a.deliver_time<DATE_SUB(DATE_FORMAT('" + endTime + "','%Y-%m-%d %H:%i:%s'),INTERVAL -1 DAY) ";
                             }
 
-                            ssql +=" ORDER BY a.deliver_time DESC";
+                            ssql += " ORDER BY a.deliver_time DESC";
 
 
                         }
                     }
                 }
-            }else{
+            } else {
                 ssql = "select d.deliverid,d.deliver_time,d.deliver_type,d.access_type,d.checkresult,d.media,\n" +
                         "d.message,d.studentid,b.human_name as student_name,d.parentid,c.human_name as parent_name \n" +
                         "from tc_parent_student_rel t,tc_human_info b,tc_deliver_record d LEFT JOIN tc_human_info c on c.humanid=d.parentid \n" +
                         "where t.homeid in (select t.homeid from tc_parent_student_rel a \n" +
-                        "where (a.homeid="+humanid+" or a.humanid="+humanid+")) " +
+                        "where (a.homeid=" + humanid + " or a.humanid=" + humanid + ")) " +
                         "and t.humanid=b.humanid and b.human_type=0 and d.studentid=b.humanid ";
-                if(beginTime!=null && !beginTime.equals("")){
-                    ssql +=" and d.deliver_time>DATE_FORMAT('"+beginTime+"','%Y-%m-%d %h:%i:%s') ";
+                if (beginTime != null && !beginTime.equals("")) {
+                    ssql += " and d.deliver_time>DATE_FORMAT('" + beginTime + "','%Y-%m-%d %h:%i:%s') ";
                 }
 
-                if(endTime!=null && !endTime.equals("")){
-                    ssql +=" and d.deliver_time<DATE_FORMAT('"+endTime+"','%Y-%m-%d %h:%i:%s') ";
+                if (endTime != null && !endTime.equals("")) {
+                    ssql += " and d.deliver_time<DATE_SUB(DATE_FORMAT('" + endTime + "','%Y-%m-%d %H:%i:%s'),INTERVAL -1 DAY) ";
                 }
 
-                ssql +=" ORDER BY d.deliver_time DESC";
+                ssql += " ORDER BY d.deliver_time DESC";
 
             }
-        }else if(humanType==2){
-            HumanInfo humanInfo = humanInfoDao.findByHumanIDAndDeleteFlag(humanid,0);
-            if(humanName!=null && !humanName.equals("")){
+        } else if (humanType == 2 || humanType == 3) {
+            HumanInfo humanInfo = humanInfoDao.findByHumanIDAndDeleteFlag(humanid, 0);
+            if (humanName != null && !humanName.equals("")) {
                 ssql = "select a.deliverid,a.deliver_time,a.deliver_type,a.access_type,a.checkresult,a.media," +
                         "a.message,a.studentid,b.human_name as student_name,a.parentid,c.human_name as parent_name \n" +
                         "from tc_deliver_record a LEFT JOIN tc_human_info c on a.parentid=c.humanid,tc_human_info b " +
-                        "where b.humanid=a.studentid and b.human_type=0 and b.delete_flag=0 and b.schoolid=" +humanInfo.getSchoolID()+
-                        " and b.human_name like '%"+humanName+"%'";
-                if(beginTime!=null && !beginTime.equals("")){
-                    ssql +=" and a.deliver_time>DATE_FORMAT('"+beginTime+"','%Y-%m-%d %h:%i:%s') ";
+                        "where b.humanid=a.studentid and b.human_type=0 and b.delete_flag=0 and b.schoolid=" + humanInfo.getSchoolID() +
+                        " and b.human_name like '%" + humanName + "%'";
+                if (beginTime != null && !beginTime.equals("")) {
+                    ssql += " and a.deliver_time>DATE_FORMAT('" + beginTime + "','%Y-%m-%d %h:%i:%s') ";
                 }
 
-                if(endTime!=null && !endTime.equals("")){
-                    ssql +=" and a.deliver_time<DATE_FORMAT('"+endTime+"','%Y-%m-%d %h:%i:%s') ";
+                if (endTime != null && !endTime.equals("")) {
+                    ssql += " and a.deliver_time<DATE_SUB(DATE_FORMAT('" + endTime + "','%Y-%m-%d %H:%i:%s'),INTERVAL -1 DAY) ";
                 }
 
-                ssql +=" ORDER BY a.deliver_time DESC";
-            }else{
+                ssql += " ORDER BY a.deliver_time DESC";
+            } else {
                 resultInfo.setCode(400);
                 resultInfo.setSuccess(false);
                 resultInfo.setMessage("输入名字为空，请指定人员查询！");
-                return  resultInfo;
+                return resultInfo;
             }
         }
 
-        System.out.println("humanType:"+humanType);
-        System.out.println("ssql:"+ssql);
+        System.out.println("humanType:" + humanType);
+        System.out.println("ssql:" + ssql);
 
-        List<Map<String,Object>> deliverrecordlist = jdbcTemplate.queryForList(ssql);
-        if(ssql!=null && ssql != "" && !ssql.equals("")){
+        List<Map<String, Object>> deliverrecordlist = jdbcTemplate.queryForList(ssql);
+        if (ssql != null && ssql != "" && !ssql.equals("")) {
             //List<Map<String,Object>> deliverrecordlist = jdbcTemplate.queryForList(ssql);
-            resultInfo.addData("deliverrecordlist",deliverrecordlist);
+            resultInfo.addData("deliverrecordlist", deliverrecordlist);
             resultInfo.setCode(200);
             resultInfo.setSuccess(true);
             resultInfo.setMessage("查询成功！");
-            return  resultInfo;
+            return resultInfo;
         }
 
-        resultInfo.addData("deliverrecordlist",deliverrecordlist);
+        resultInfo.addData("deliverrecordlist", deliverrecordlist);
         resultInfo.setCode(200);
         resultInfo.setSuccess(true);
         resultInfo.setMessage("查询成功！");
         return resultInfo;
+    }
+
+    public ResultInfo deliverGeTuiAMRealTime(int humanID, String content,String media) {//早上入园通知实时通知
+        System.out.println("test:"+content);
+        List<HumanInfo> humanlist = humanInfoDao.findByHumanIDAndDeleteFlagAndCheckFlag(humanID, 0, 1);
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String date = df.format(new Date());// new Date()为获取当前系统时间，也可使用当前时间戳
+        HumanInfo human = new HumanInfo();
+        ResultInfo resultInfo = new ResultInfo(false);
+        if (humanlist != null && humanlist.size() > 0) {
+            human = humanlist.get(0);
+        } else {
+            return resultInfo;
+        }
+        System.out.println("test1:"+content);
+        String ssql = "select DISTINCT b.human_name,b.humanid,b.tel,b.clientid from tc_parent_student_rel a,tc_human_info b where a.humanid=" + human.getHumanID() +
+                " and a.homeid=b.humanid and b.delete_flag=0 and a.delete_flag=0 and a.check_flag=1 and b.check_flag=1 " +
+                " and b.receive_deliver_getui_flag=1";
+
+        List<Map<String, Object>> parentList = jdbcTemplate.queryForList(ssql);
+        Map<String, String> msg = new HashMap<String, String>();
+        Map<String, Object> transText = new HashMap<String, Object>();
+
+        transText.put("content",content);
+        transText.put("type",1);
+        JSONObject json = new JSONObject(transText);
+
+        msg.put("title", "入园消息！");
+        msg.put("titleText", content);
+        msg.put("transText", json.toString());
+
+
+        AppPushUtils pushUtils = new AppPushUtils(appId, appKey, masterSecret);
+
+        if (parentList != null && parentList.size() > 0) {
+            for (Map map : parentList) {
+                System.out.println("正在发送消息...");
+                if (map.get("clientid") != null) {
+                    if(map.get("receive_deliver_getui_flag")!=null && (Integer)map.get("receive_deliver_getui_flag")==1) {
+                        IPushResult ret = pushUtils.pushMsgToSingle(map.get("clientid").toString(), msg);
+                        System.out.println(ret.getResponse().toString());
+                    }
+                    GeTueRecord GeTueRecord = new GeTueRecord();
+                    GeTueRecord.setGetuiTime(new Date());
+                    GeTueRecord.setMessage(content);
+                    GeTueRecord.setDeleteFlag(0);
+                    GeTueRecord.setParentID((Integer) map.get("humanid"));
+                    GeTueRecord.setSchoolID(human.getSchoolID());
+                    GeTueRecord.setStudentID(human.getHumanID());
+                    GeTueRecord.setAccessType(1);
+                    GeTueRecord.setMedia(media);
+                    geTuiRecordDao.save(GeTueRecord);
+
+                    HumanInfo humanInfo = humanInfoDao.findByHumanIDAndDeleteFlag((Integer) map.get("humanid"),0);
+                    humanInfo.setDeliverNotReadNum(humanInfo.getDeliverNotReadNum()+1);
+                    humanInfoService.editHuman(humanInfo);
+                }
+            }
+        }
+
+        resultInfo.setCode(200);
+        resultInfo.setSuccess(true);
+        resultInfo.setMessage("入园通知发送成功！");
+
+        return resultInfo;
+    }
+
+    public ResultInfo deliverGeTuiPMRealTime(int humanID, String content,String media) {//离园通知实时发送
+        List<HumanInfo> humanlist = humanInfoDao.findByHumanIDAndDeleteFlagAndCheckFlag(humanID, 0, 1);
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String date = df.format(new Date());// new Date()为获取当前系统时间，也可使用当前时间戳
+
+        HumanInfo human = new HumanInfo();
+        ResultInfo resultInfo = new ResultInfo(false);
+        if (humanlist != null && humanlist.size() > 0) {
+            human = humanlist.get(0);
+        } else {
+            return resultInfo;
+        }
+
+        String ssql = "select DISTINCT b.human_name,b.humanid,b.tel,b.clientid from tc_parent_student_rel a,tc_human_info b where a.humanid=" + human.getHumanID() +
+                " and a.homeid=b.humanid and b.delete_flag=0 and a.delete_flag=0 and a.check_flag=1 and b.check_flag=1 " +
+                " and b.receive_deliver_getui_flag=1";
+
+        List<Map<String, Object>> parentList = jdbcTemplate.queryForList(ssql);
+        Map<String, String> msg = new HashMap<String, String>();
+        Map<String, Object> transText = new HashMap<String, Object>();
+
+        transText.put("content",content);
+        transText.put("type",1);
+        JSONObject json = new JSONObject(transText);
+        msg.put("title", "出园消息！");
+        msg.put("titleText", content);
+        msg.put("transText", json.toString());
+
+                /*String appId = "jPX0kbnuCc8Og0gmSBnu3";
+                String appKey = "Og6qT7rLNN9fixE8O7ppR4";
+                String masterSecret = "x28EanpNuRA1fMjoDS1Tv9";*/
+        AppPushUtils pushUtils = new AppPushUtils(appId, appKey, masterSecret);
+
+        if (parentList != null && parentList.size() > 0) {
+            for (Map map : parentList) {
+                System.out.println("正在发送消息...");
+                if (map.get("clientid") != null) {
+                    if(map.get("receive_deliver_getui_flag")!=null && (Integer)map.get("receive_deliver_getui_flag")==1) {
+                        IPushResult ret = pushUtils.pushMsgToSingle(map.get("clientid").toString(), msg);
+                        System.out.println(ret.getResponse().toString());
+                    }
+                    GeTueRecord GeTueRecord = new GeTueRecord();
+                    GeTueRecord.setGetuiTime(new Date());
+                    GeTueRecord.setMessage(content);
+                    GeTueRecord.setDeleteFlag(0);
+                    GeTueRecord.setParentID((Integer) map.get("humanid"));
+                    GeTueRecord.setSchoolID(human.getSchoolID());
+                    GeTueRecord.setStudentID(human.getHumanID());
+                    GeTueRecord.setAccessType(0);
+                    GeTueRecord.setMedia(media);
+                    geTuiRecordDao.save(GeTueRecord);
+
+                    HumanInfo humanInfo = humanInfoDao.findByHumanIDAndDeleteFlag((Integer) map.get("humanid"),0);
+                    humanInfo.setDeliverNotReadNum(humanInfo.getDeliverNotReadNum()+1);
+                    humanInfoService.editHuman(humanInfo);
+                }
+            }
+        }
+
+        resultInfo.setCode(200);
+        resultInfo.setSuccess(true);
+        resultInfo.setMessage("出园通知发送成功！");
+
+        return resultInfo;
+    }
+
+    public ResultInfo studentDeliverRecordQueryByMonth(Integer humanid, String beginTime, String endTime){
+        ResultInfo resultInfo = new ResultInfo(false);
+        String sql = "select DATE_FORMAT(t.deliver_time,'%Y-%m-%d') as delivertime from tc_deliver_record t \n" +
+                "where 1=1 ";
+        if(humanid!=null && humanid!=-1){
+            sql+=" and t.studentid="+humanid;
+        }
+
+        if (beginTime != null && !beginTime.equals("")) {
+            sql += " and t.deliver_time>DATE_FORMAT('" + beginTime + "','%Y-%m-%d %h:%i:%s') ";
+        }
+
+        if (endTime != null && !endTime.equals("")) {
+            sql += " and t.deliver_time<DATE_FORMAT('" + endTime + "','%Y-%m-%d %H:%i:%s') ";
+        }
+
+        sql+=" GROUP BY DATE_FORMAT(t.deliver_time,'%Y-%m-%d')";
+
+        List<Map<String, Object>> timeList = jdbcTemplate.queryForList(sql);
+        resultInfo.addData("timeList",timeList);
+        resultInfo.setSuccess(true);
+        resultInfo.setCode(200);
+        resultInfo.setMessage("查询成功！");
+        return resultInfo;
+    }
+
+    public ResultInfo deliverRecordQueryByDay(int humanid, String dayTime){
+        ResultInfo resultInfo = new ResultInfo(false);
+        String ssql = "select a.deliverid,a.deliver_time,a.deliver_type,a.access_type,a.checkresult," +
+                "a.media,a.message,a.studentid,b.human_name as student_name,a.parentid," +
+                "c.human_name as parent_name\n" +
+                "from tc_deliver_record a LEFT JOIN tc_human_info c on a.parentid=c.humanid," +
+                "tc_human_info b where a.studentid=" + humanid + " and a.studentid=b.humanid ";
+        if (dayTime != null && !dayTime.equals("")) {
+            ssql += " and date_format(deliver_time,'%Y-%m-%d')= date_format('"+dayTime+"','%Y-%m-%d') ";
+        }
+
+        ssql += " ORDER BY a.deliver_time DESC";
+        List<Map<String, Object>> deliverrecordlist = jdbcTemplate.queryForList(ssql);
+        resultInfo.addData("deliverrecordlist",deliverrecordlist);
+        resultInfo.setSuccess(true);
+        resultInfo.setCode(200);
+        resultInfo.setMessage("查询成功！");
+        return resultInfo;
+
+    }
+
+    public ResultInfo deliverRecordQueryByAdultAndHumanID(int humanid,int humanType,String beginTime, String endTime){
+        ResultInfo resultInfo = new ResultInfo(false);
+        String ssql = "";
+        if(humanType==0){
+            ssql = "select a.deliverid,a.deliver_time,a.deliver_type,a.access_type,a.checkresult," +
+                    "a.media,a.message,a.studentid,b.human_name as student_name,a.parentid," +
+                    "c.human_name as parent_name\n" +
+                    "from tc_deliver_record a LEFT JOIN tc_human_info c on a.parentid=c.humanid," +
+                    "tc_human_info b where a.studentid=" + humanid + " and a.studentid=b.humanid ";
+        }else{
+            ssql = "select a.deliverid,a.deliver_time,a.deliver_type,a.access_type,a.checkresult," +
+                    "a.media,a.message,a.studentid,b.human_name as student_name,a.parentid," +
+                    "c.human_name as parent_name\n" +
+                    "from tc_deliver_record a LEFT JOIN tc_human_info c on a.studentid=c.humanid," +
+                    "tc_human_info b where a.parentid=" + humanid + " and a.parentid=b.humanid ";
+        }
+
+        if (beginTime != null && !beginTime.equals("")) {
+            ssql += " and t.deliver_time>DATE_FORMAT('" + beginTime + "','%Y-%m-%d %h:%i:%s') ";
+        }
+
+        if (endTime != null && !endTime.equals("")) {
+            ssql += " and a.deliver_time<DATE_SUB(DATE_FORMAT('" + endTime + "','%Y-%m-%d %H:%i:%s'),INTERVAL -1 DAY) ";
+        }
+
+        ssql += " ORDER BY a.deliver_time DESC";
+        List<Map<String, Object>> deliverrecordlist = jdbcTemplate.queryForList(ssql);
+        resultInfo.addData("deliverrecordlist",deliverrecordlist);
+        resultInfo.setSuccess(true);
+        resultInfo.setCode(200);
+        resultInfo.setMessage("查询成功！");
+        return resultInfo;
+
+    }
+
+    /**
+     * 获取过去第几天的日期
+     *
+     * @param past
+     * @return
+     */
+    public String getPastDate(int past) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.DAY_OF_YEAR, calendar.get(Calendar.DAY_OF_YEAR) - past);
+        Date today = calendar.getTime();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        String result = format.format(today);
+        return result;
     }
 
 }

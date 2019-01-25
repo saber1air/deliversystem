@@ -245,7 +245,7 @@ public class MacController {
                     "t.create_time as createTime,t.delete_flag as deleteFlag,t.gradeid as gradeID,t.human_name as humanName,\n" +
                     "t.human_type as humanType,t.idnum,t.manager_flag as managerFlag,t.manager_type as managerType,\n" +
                     "t.`online`,t.`password`,t.remarks,t.schoolid as schoolID,t.tel,t.token,t.update_time as updateTime \n" +
-                    "from tc_human_info t where t.humanid in \n" +
+                    "from tc_human_info t where t.human_type<>0 and t.humanid in \n" +
                     "(select DISTINCT b.humanid as humanid  from tc_human_info t,tc_parent_student_rel a,tc_parent_student_rel b " +
                     "where t.human_type=0 and t.schoolid="+schoolID+" and a.humanid=t.humanid \n" +
                     "and b.homeid=a.homeid \n" +
@@ -262,7 +262,7 @@ public class MacController {
             sql = "select DISTINCT t.mediaid as mediaID,t.create_time as createTime,t.delete_flag as deleteFlag,\n" +
                     "t.feature,t.humanid as humanID,t.media_path as mediaPath,t.remarks,t.update_time as updateTime,\n" +
                     "t.schoolid as schoolID,t.check_flag as checkFlag \n" +
-                    "from tc_human_media t where t.humanid in \n" +
+                    "from tc_human_media t where t.feature is not null and t.humanid in \n" +
                     "(select DISTINCT b.humanid as humanid  from tc_human_info t,tc_parent_student_rel a,tc_parent_student_rel b " +
                     "where t.human_type=0 and t.schoolid="+schoolID+" and a.humanid=t.humanid \n" +
                     "and b.homeid=a.homeid \n" +
@@ -272,7 +272,7 @@ public class MacController {
                     "UNION select DISTINCT t.mediaid as mediaID,t.create_time as createTime,t.delete_flag as deleteFlag,\n" +
                     " t.feature,t.humanid as humanID,t.media_path as mediaPath,t.remarks,t.update_time as updateTime,"  +
                     " t.schoolid as schoolID,t.check_flag as checkFlag from tc_human_info a,tc_human_media t " +
-                    " where t.humanid=a.humanid and a.human_type<>1 and a.schoolid="+schoolID ;
+                    " where t.feature is not null and t.humanid=a.humanid and a.human_type<>1 and a.schoolid="+schoolID ;
             List<Map<String,Object>> humanMediaList = jdbcTemplate.queryForList(sql);
                     //List<HumanMedia> humanMediaList = humanMediaService.findBySchoolID(schoolID);
             sql = "select DISTINCT b.relid as relid,b.check_flag as checkFlag,b.create_time as createTime,\n" +
@@ -316,7 +316,7 @@ public class MacController {
                     "t.create_time as createTime,t.delete_flag as deleteFlag,t.gradeid as gradeID,t.human_name as humanName,\n" +
                     "t.human_type as humanType,t.idnum,t.manager_flag as managerFlag,t.manager_type as managerType,\n" +
                     "t.`online`,t.`password`,t.remarks,t.schoolid as schoolID,t.tel,t.token,t.update_time as updateTime \n" +
-                    "from tc_human_info t where t.humanid in \n" +
+                    "from tc_human_info t where t.human_type<>0 and t.humanid in \n" +
                     "(select DISTINCT b.humanid as humanid  from tc_human_info t,tc_parent_student_rel a,tc_parent_student_rel b " +
                     "where t.human_type=0 and t.schoolid="+schoolID+" and a.humanid=t.humanid \n" +
                     " and b.homeid=a.homeid \n" +
@@ -331,7 +331,7 @@ public class MacController {
                     "t.`online`,t.`password`,t.remarks,t.schoolid as schoolID,t.tel,t.token,t.update_time as updateTime  " +
                     " from tc_human_info t where t.human_type<>1 and t.schoolid="+schoolID +
                     " and t.update_time>DATE_FORMAT('"+date+"','%Y-%m-%d %H:%i:%s') " +
-                    " UNION select t.humanid as humanID,t.applay_auth as applayAuth,t.atschool_flag as atschoolFlag,\n" +
+                    " UNION select DISTINCT t.humanid as humanID,t.applay_auth as applayAuth,t.atschool_flag as atschoolFlag,\n" +
                     " t.check_flag as checkFlag,t.classid as classID,t.clientid as clientID," +
                     " t.create_time as createTime,t.delete_flag as deleteFlag,t.gradeid as gradeID,t.human_name as humanName," +
                     " t.human_type as humanType,t.idnum,t.manager_flag as managerFlag,t.manager_type as managerType," +
@@ -344,7 +344,7 @@ public class MacController {
             sql = "select t.mediaid as mediaID,t.create_time as createTime,t.delete_flag as deleteFlag,\n" +
                     "t.feature,t.humanid as humanID,t.media_path as mediaPath,t.remarks,t.update_time as updateTime,\n" +
                     "t.schoolid as schoolID,t.check_flag as checkFlag \n" +
-                    "from tc_human_media t where t.humanid in \n" +
+                    "from tc_human_media t where t.feature is not null and t.humanid in \n" +
                     "(select DISTINCT b.humanid as humanid  from tc_human_info t,tc_parent_student_rel a,tc_parent_student_rel b " +
                     "where t.human_type=0 and t.schoolid="+schoolID+" and a.humanid=t.humanid \n" +
                     " and b.homeid=a.homeid \n" +
@@ -355,13 +355,13 @@ public class MacController {
                     "UNION select DISTINCT t.mediaid as mediaID,t.create_time as createTime,t.delete_flag as deleteFlag,\n" +
                     " t.feature,t.humanid as humanID,t.media_path as mediaPath,t.remarks,t.update_time as updateTime,"  +
                     " t.schoolid as schoolID,t.check_flag as checkFlag from tc_human_info a,tc_human_media t " +
-                    " where t.humanid=a.humanid and a.human_type<>1 and a.schoolid="+schoolID+
+                    " where t.feature is not null and t.humanid=a.humanid and a.human_type<>1 and a.schoolid="+schoolID+
                     " and t.update_time>DATE_FORMAT('"+date+"','%Y-%m-%d %H:%i:%s') " +
                     " UNION select DISTINCT t.mediaid as mediaID,t.create_time as createTime,t.delete_flag as deleteFlag,\n" +
                     " t.feature,t.humanid as humanID,t.media_path as mediaPath,t.remarks,t.update_time as updateTime," +
                     " t.schoolid as schoolID,t.check_flag as checkFlag " +
                     "from tc_human_info d,tc_parent_student_rel a,tc_parent_student_rel b,tc_human_media t " +
-                    "where d.create_time>DATE_FORMAT('"+date+"','%Y-%m-%d %H:%i:%s') \n" +
+                    "where t.feature is not null and d.create_time>DATE_FORMAT('"+date+"','%Y-%m-%d %H:%i:%s') \n" +
                     "and d.schoolid="+schoolID+" and d.human_type=0 and a.humanid=d.humanid and a.homeid=b.homeid " +
                     "and (t.humanid=b.homeid or t.humanid=b.humanid)";
             List<Map<String,Object>> humanMediaList = jdbcTemplate.queryForList(sql);
@@ -371,7 +371,7 @@ public class MacController {
                     "b.update_time as updateTime,b.schoolID from tc_human_info t,tc_parent_student_rel a,\n" +
                     "tc_parent_student_rel b where t.human_type=0 and t.schoolid="+schoolID+" " +
                     "and t.humanid=a.humanid and a.homeid=b.homeid "+
-                    " and t.update_time>DATE_FORMAT('"+date+"','%Y-%m-%d %H:%i:%s')";;
+                    " and b.update_time>DATE_FORMAT('"+date+"','%Y-%m-%d %H:%i:%s')";;
             List<Map<String,Object>> parenStudentRel = jdbcTemplate.queryForList(sql);
             //List<ParenStudentRel> parenStudentRel = pareStudentRelService.findBySchoolIDAndUpdateTimeAfter(schoolID, startDate);
             List<GradeInfo> gradeInfoList = gradeInfoService.findBySchoolIDAndUpdateTimeAfter(schoolID, startDate);

@@ -1,15 +1,15 @@
 package com.deliver.controller;
 
+import com.baidubce.services.bos.BosClient;
 import com.deliver.entity.*;
+import com.deliver.mapbody.HumanExcel;
 import com.deliver.service.*;
-import com.deliver.util.Base64Img;
-import com.deliver.util.ResultInfo;
-import com.deliver.util.ToInterface;
-import com.deliver.util.UnZipUtil;
+import com.deliver.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,10 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +34,9 @@ public class UploadDownloadController {
 
     @Autowired
     private AdvertService advertService;
+
+    @Autowired
+    private NoticeService noticeService;
 
     @Autowired
     private HumanInfoService humanInfoService;
@@ -156,7 +156,7 @@ public class UploadDownloadController {
     }
 
     /**
-     * 文件上传到服务器
+     * 广告上传到服务器
      **/
     @RequestMapping(value = "/uploadadvert")
     @ResponseBody
@@ -231,18 +231,19 @@ public class UploadDownloadController {
             //上传文件路径
             //String path = request.getServletPath();
 
-            String path = mImagesPath + "uploadzip" + File.separator + date;
-            //上传文件名
             String filename = file.getOriginalFilename();
-            File filepath = new File(path, filename);
-            //判断路径是否存在，如果不存在就创建一个
-            if (!filepath.getParentFile().exists()) {
-                filepath.getParentFile().mkdirs();
-            }
-            //将上传文件保存到一个目标文件当中
-            file.transferTo(new File(path + File.separator + filename));
-            String pathSrc = path + File.separator + filename;
             if (filename.split("\\.")[1] == "zip" || filename.split("\\.")[1].equals("zip")) {
+                String path = mImagesPath + "uploadzip" + File.separator + date;
+                //上传文件名
+
+                File filepath = new File(path, filename);
+                //判断路径是否存在，如果不存在就创建一个
+                if (!filepath.getParentFile().exists()) {
+                    filepath.getParentFile().mkdirs();
+                }
+                //将上传文件保存到一个目标文件当中
+                file.transferTo(new File(path + File.separator + filename));
+                String pathSrc = path + File.separator + filename;
                 UnZipUtil unZipUtil = new UnZipUtil();
                 if (!unZipUtil.unZipFolder(pathSrc, mImagesPath + "uploadimg" + File.separator + date)) {
                     File upload = new File(path + File.separator + filename);
@@ -258,9 +259,37 @@ public class UploadDownloadController {
                     resultInfo.setSuccess(false);
                     return resultInfo;
                 }
+            }else if(filename.split("\\.")[1] == "xlsx" || filename.split("\\.")[1].equals("xlsx")){
+                String path = mImagesPath + "excel/" + date;
+                //上传文件名
+                File exfilepath = new File(path, filename);
+                //判断路径是否存在，如果不存在就创建一个
+                if (!exfilepath.getParentFile().exists()) {
+                    exfilepath.getParentFile().mkdirs();
+                }
+                //将上传文件保存到一个目标文件当中
+                file.transferTo(new File(path + File.separator + filename));
+
+                POIReadExcelTool  excelTool = new POIReadExcelTool();
+                List<HumanExcel> humanExcelList = excelTool.readXls(path+"/"+filename);
+
+                Map relMap = saveParent(humanExcelList,schoolID);
+                boolean flag = saveFamily(humanExcelList,relMap,schoolID);
+                if(flag){
+                    resultInfo.setCode(200);
+                    resultInfo.setMessage("批量导入成功！");
+                    resultInfo.setSuccess(true);
+                    return resultInfo;
+                }else{
+                    resultInfo.setCode(400);
+                    resultInfo.setMessage("上传失败！无上传文件！");
+                    resultInfo.setSuccess(false);
+                    return resultInfo;
+                }
+
             }else{
                 resultInfo.setCode(400);
-                resultInfo.setMessage("上传失败!请检查压缩文件格式，只支持zip压缩文件");
+                resultInfo.setMessage("上传失败!请检查压缩文件格式，只支持zip压缩文件和xls格式的文件");
                 resultInfo.setSuccess(false);
                 return resultInfo;
             }
@@ -539,14 +568,22 @@ public class UploadDownloadController {
                                                                                             String childImgPath = mImagesPath + photoName;
                                                                                             Base64Img.base64StrToImage(map.get("crop_img").toString(), childImgPath);
 
-                                                                                            List<HumanMedia> humanMediaList = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlag(childID, 0, 1);
-                                                                                            if (humanMediaList != null && humanMediaList.size() > 0) {
-                                                                                                for (HumanMedia humanMedia1 : humanMediaList) {
-                                                                                                    humanMedia1.setDeleteFlag(1);
-                                                                                                    humanMediaService.delMedia(humanMedia1);
+                                                                                            List<HumanMedia> humanMediaLists = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlag(childID,0,1);
+
+                                                                                            if(humanMediaLists!=null && humanMediaLists.size()==1){
+                                                                                                for(HumanMedia media:humanMediaLists){
+                                                                                                    media.setShowFlag(0);
+                                                                                                    humanMediaService.setMediaShow(media);
                                                                                                 }
-
-
+                                                                                            }else if(humanMediaLists!=null && humanMediaLists.size()>1){
+                                                                                                List<HumanMedia> humanMediaShow = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlag(childID,0,1,1);
+                                                                                                if(humanMediaShow!=null && humanMediaShow.size()>0){
+                                                                                                    for(HumanMedia media:humanMediaShow){
+                                                                                                        media.setShowFlag(0);
+                                                                                                        media.setDeleteFlag(1);
+                                                                                                        humanMediaService.delMedia(media);
+                                                                                                    }
+                                                                                                }
                                                                                             }
                                                                                             HumanMedia humanMedia2 = new HumanMedia();
                                                                                             humanMedia2.setDeleteFlag(0);
@@ -555,6 +592,7 @@ public class UploadDownloadController {
                                                                                             humanMedia2.setHumanID(childID);
                                                                                             humanMedia2.setMediaPath("images/" + photoName);
                                                                                             humanMedia2.setFeature(map.get("features").toString());
+                                                                                            humanMedia2.setShowFlag(1);
                                                                                             humanMediaService.addMedia(humanMedia2);
 
 
@@ -622,14 +660,22 @@ public class UploadDownloadController {
                                                                                             Base64Img.base64StrToImage(map.get("crop_img")
                                                                                                     .toString(), adultImgPath);
 
-                                                                                            List<HumanMedia> humanMediaList = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlag(adultID, 0, 1);
-                                                                                            if (humanMediaList != null && humanMediaList.size() > 0) {
-                                                                                                for (HumanMedia humanMedia1 : humanMediaList) {
-                                                                                                    humanMedia1.setDeleteFlag(1);
-                                                                                                    humanMediaService.delMedia(humanMedia1);
+                                                                                            List<HumanMedia> humanMediaLists = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlag(adultID,0,1);
+
+                                                                                            if(humanMediaLists!=null && humanMediaLists.size()==1){
+                                                                                                for(HumanMedia media:humanMediaLists){
+                                                                                                    media.setShowFlag(0);
+                                                                                                    humanMediaService.setMediaShow(media);
                                                                                                 }
-
-
+                                                                                            }else if(humanMediaLists!=null && humanMediaLists.size()>1){
+                                                                                                List<HumanMedia> humanMediaShow = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlag(adultID,0,1,1);
+                                                                                                if(humanMediaShow!=null && humanMediaShow.size()>0){
+                                                                                                    for(HumanMedia media:humanMediaShow){
+                                                                                                        media.setShowFlag(0);
+                                                                                                        media.setDeleteFlag(1);
+                                                                                                        humanMediaService.delMedia(media);
+                                                                                                    }
+                                                                                                }
                                                                                             }
                                                                                             HumanMedia humanMedia2 = new HumanMedia();
                                                                                             humanMedia2.setDeleteFlag(0);
@@ -637,6 +683,8 @@ public class UploadDownloadController {
                                                                                             humanMedia2.setHumanID(adultID);
                                                                                             humanMedia2.setMediaPath("images/" + photoName);
                                                                                             humanMedia2.setFeature(map.get("features").toString());
+                                                                                            humanMedia2.setShowFlag(1);
+                                                                                            humanMedia2.setPhoneFlag(1);
                                                                                             humanMediaService.addMedia(humanMedia2);
                                                                                         }
                                                                                     } else {
@@ -760,14 +808,22 @@ public class UploadDownloadController {
                                                                 Base64Img.base64StrToImage(map.get("crop_img")
                                                                         .toString(), adultImgPath);
 
-                                                                List<HumanMedia> humanMediaList = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlag(adultID, 0, 1);
-                                                                if (humanMediaList != null && humanMediaList.size() > 0) {
-                                                                    for (HumanMedia humanMedia1 : humanMediaList) {
-                                                                        humanMedia1.setDeleteFlag(1);
-                                                                        humanMediaService.delMedia(humanMedia1);
+                                                                List<HumanMedia> humanMediaLists = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlag(adultID,0,1);
+
+                                                                if(humanMediaLists!=null && humanMediaLists.size()==1){
+                                                                    for(HumanMedia media:humanMediaLists){
+                                                                        media.setShowFlag(0);
+                                                                        humanMediaService.setMediaShow(media);
                                                                     }
-
-
+                                                                }else if(humanMediaLists!=null && humanMediaLists.size()>1){
+                                                                    List<HumanMedia> humanMediaShow = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlag(adultID,0,1,1);
+                                                                    if(humanMediaShow!=null && humanMediaShow.size()>0){
+                                                                        for(HumanMedia media:humanMediaShow){
+                                                                            media.setShowFlag(0);
+                                                                            media.setDeleteFlag(1);
+                                                                            humanMediaService.delMedia(media);
+                                                                        }
+                                                                    }
                                                                 }
                                                                 HumanMedia humanMedia2 = new HumanMedia();
                                                                 humanMedia2.setDeleteFlag(0);
@@ -775,6 +831,8 @@ public class UploadDownloadController {
                                                                 humanMedia2.setHumanID(adultID);
                                                                 humanMedia2.setMediaPath("images/" + photoName);
                                                                 humanMedia2.setFeature(map.get("features").toString());
+                                                                humanMedia2.setShowFlag(1);
+                                                                humanMedia2.setPhoneFlag(1);
                                                                 humanMediaService.addMedia(humanMedia2);
                                                             }
                                                         } else {
@@ -818,7 +876,7 @@ public class UploadDownloadController {
     }
 
     /**
-     * 文件上传到服务器
+     * 版本更新
      **/
     @RequestMapping(value = "/uploadversion")
     @ResponseBody
@@ -835,6 +893,14 @@ public class UploadDownloadController {
             //上传文件路径
             //String path = request.getServletPath();
 
+            List<VersionInfo> versionInfos = versionInfoService.findByVersionNumAndOs(versionNum,Os);
+            if(versionInfos!=null && versionInfos.size()>0){
+                resultInfo.setCode(400);
+                resultInfo.setMessage("版本上传失败！版本号重复！");
+                resultInfo.setSuccess(false);
+                return resultInfo;
+            }
+
             SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");//设置日期格式
             String date = df.format(new Date());// new Date()为获取当前系统时间，也可使用当前时间戳
             String path = mImagesPath + "version/" + date;
@@ -846,13 +912,47 @@ public class UploadDownloadController {
                 filepath.getParentFile().mkdirs();
             }
             //将上传文件保存到一个目标文件当中
+
             file.transferTo(new File(path + File.separator + filename));
-            String pathSrc = path + File.separator + filename;
+            String versionPath = "";
+            if(Os=="android" || Os.equals("android")){
+                String pathOs = mImagesPath + "version/andriod/";
+                File filepathOs = new File(pathOs);
+                //判断路径是否存在，如果不存在就创建一个
+                if (!filepathOs.getParentFile().exists()) {
+                    filepathOs.getParentFile().mkdirs();
+                }
+                versionPath = "version/andriod/deliverapp.apk";
+            }else if(Os=="ios" || Os.equals("ios")){
+                String pathOs = mImagesPath + "version/ios/";
+                File filepathOs = new File(pathOs);
+                //判断路径是否存在，如果不存在就创建一个
+                if (!filepathOs.getParentFile().exists()) {
+                    filepathOs.getParentFile().mkdirs();
+                }
+                versionPath = "version/ios/deliverapp.apk";
+            }else if(Os=="local" || Os.equals("local")){
+                String pathOs = mImagesPath + "version/local/";
+                File filepathOs = new File(pathOs);
+                //判断路径是否存在，如果不存在就创建一个
+                if (!filepathOs.getParentFile().exists()) {
+                    filepathOs.getParentFile().mkdirs();
+                }
+                versionPath = "version/local/deliverapp.apk";
+            }
 
+            FileInputStream ins = new FileInputStream(new File(path + File.separator + filename));
+            FileOutputStream out = new FileOutputStream(new File(mImagesPath + versionPath));
+            byte[] b = new byte[1024];
+            int n=0;
+            while((n=ins.read(b))!=-1){
+                out.write(b, 0, n);
+            }
 
-            String versionPath = "images/version/" + date + "/" + filename;
+            ins.close();
+            out.close();
 
-            List<VersionInfo> versionInfoList = versionInfoService.findByUpdateFlagAndDeleteFlag(1,0);
+            List<VersionInfo> versionInfoList = versionInfoService.findByUpdateFlagAndOsAndDeleteFlag(1,Os,0);
             if(versionInfoList!=null && versionInfoList.size()>0){
                 for(VersionInfo versionInfo1:versionInfoList){
                     versionInfo1.setUpdateFlag(0);
@@ -865,10 +965,31 @@ public class UploadDownloadController {
             versionInfo.setAppID(appID);
             versionInfo.setOs(Os);
             versionInfo.setVersionNum(versionNum);
-            versionInfo.setVersionUrl(versionPath);
+            versionInfo.setVersionUrl("images/"+versionPath);
             versionInfo.setUpdateFlag(1);
 
             versionInfoService.save(versionInfo);
+
+            List<School> schoolList = schoolService.findByDeleteFlag(0);
+            if(schoolList!=null && schoolList.size()>0){
+                for(School school : schoolList){
+                    for(int i=1;i<4;i++){
+                        Notice notice = new Notice();
+
+                        notice.setDeleteFlag(0);
+                        notice.setNoticeContent("版本有更新！");
+                        notice.setSchoolID(school.getSchoolID());
+                        notice.setNoticeType(i);
+
+                        notice = noticeService.save(notice);
+
+                        //noticeService.noticeGeTui(notice,3);
+                    }
+
+                }
+
+            }
+
 
             resultInfo.setCode(200);
             resultInfo.setMessage("上传成功！");
@@ -882,5 +1003,362 @@ public class UploadDownloadController {
         }
 
     }
+
+    /**
+     * 批量上传 2018-09-06 cwy
+     */
+    @RequestMapping(value = "/uploadexcel")
+    public @ResponseBody
+    ResultInfo uploadExcel(HttpServletRequest request, @RequestParam("file") MultipartFile file, @RequestParam(value = "schoolID", defaultValue = "0") Integer schoolID) throws Exception {
+        ResultInfo resultInfo = new ResultInfo(false);
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");//设置日期格式
+        String date = df.format(new Date());// new Date()为获取当前系统时间，也可使用当前时间戳
+
+        if (!file.isEmpty()) {
+            //上传文件路径
+            //String path = request.getServletPath();
+            String excelPath ="";
+            String path = mImagesPath + "excel/" + date;
+            //上传文件名
+            String filename = file.getOriginalFilename();
+            if (filename.split("\\.")[1] != "xlsx" && !filename.split("\\.")[1].equals("xlsx")){
+
+                resultInfo.setCode(400);
+                resultInfo.setMessage("上传失败！只支持xls格式的文件！");
+                resultInfo.setSuccess(false);
+                return resultInfo;
+            }
+            File filepath = new File(path, filename);
+            //判断路径是否存在，如果不存在就创建一个
+            if (!filepath.getParentFile().exists()) {
+                filepath.getParentFile().mkdirs();
+            }
+            //将上传文件保存到一个目标文件当中
+            file.transferTo(new File(path + File.separator + filename));
+            String pathSrc = path + File.separator + filename;
+
+            excelPath = "images/excel/" + date + "/" + filename;
+
+            POIReadExcelTool  excelTool = new POIReadExcelTool();
+            List<HumanExcel> humanExcelList = excelTool.readXls(excelPath);
+
+            Map relMap = saveParent(humanExcelList,schoolID);
+            boolean flag = saveFamily(humanExcelList,relMap,schoolID);
+            if(flag){
+                resultInfo.setCode(200);
+                resultInfo.setMessage("批量导入成功！");
+                resultInfo.setSuccess(true);
+                return resultInfo;
+            }else{
+                resultInfo.setCode(400);
+                resultInfo.setMessage("上传失败！无上传文件！");
+                resultInfo.setSuccess(false);
+                return resultInfo;
+            }
+
+        } else {
+            resultInfo.setCode(400);
+            resultInfo.setMessage("上传失败！无上传文件！");
+            resultInfo.setSuccess(false);
+            return resultInfo;
+        }
+    }
+
+    @Transactional   //事务管理
+    public Map saveParent(List<HumanExcel> humanExcelList,int schoolID){
+        Map relMap = new HashMap();
+        if(humanExcelList!=null && humanExcelList.size()>0){
+            for(HumanExcel humanExcel:humanExcelList){
+                if(humanExcel.getRel()!=null &&(humanExcel.getRel().trim()=="家长" || "家长".equals(humanExcel.getRel().trim()))){
+                    HumanInfo humanInfo = new HumanInfo();
+                    humanInfo.setHumanType(0);
+                    humanInfo.setHumanName(humanExcel.getHumanName());
+                    humanInfo.setSchoolID(schoolID);
+                    List<GradeInfo> gradeInfoList= gradeInfoService.
+                            findBySchoolIDAndGradeNumAndDeleteFlag(schoolID,humanExcel.getGradeNum(),0);
+                    if(gradeInfoList!=null && gradeInfoList.size()>0)
+                        humanInfo.setGradeID(gradeInfoList.get(0).getGradeID());
+                    List<ClassInfo> classInfoList = classInfoService.
+                            findBySchoolIDAndGradeIDAndClassNumAndDeleteFlag(schoolID,humanInfo.getGradeID(),humanExcel.getClassNum(),0);
+                    if(classInfoList!=null && classInfoList.size()>0)
+                        humanInfo.setClassID(classInfoList.get(0).getClassID());
+                    humanInfo.setManagerType(0);
+                    humanInfo.setCheckFlag(1);
+                    humanInfo.setOnline(0);
+                    humanInfo.setPassword("0000");
+                    humanInfo.setAtschoolFlag(0);
+
+                    HumanInfo student = humanInfoService.
+                            findByHumanNameAndSchoolIDAndGradeIDAndClassID(humanExcel.getHumanName(),schoolID,humanInfo.getGradeID(),humanInfo.getClassID());
+                    if(student==null){
+                        student = humanInfoService.saveHuman(humanInfo);
+                        HumanMedia stuMedia = new HumanMedia();
+                        stuMedia.setShowFlag(1);
+                        stuMedia.setMediaPath("images/defaultImg.jpg");
+                        stuMedia.setCheckFlag(1);
+                        stuMedia.setHumanID(student.getHumanID());
+                        stuMedia.setSchoolID(student.getSchoolID());
+                        stuMedia.setPhoneFlag(1);
+                        humanMediaService.addMedia(stuMedia);
+                    }
+
+                    if(humanExcel.getParentName()!=null && humanExcel.getTel()!=null){
+                        HumanInfo parents = new HumanInfo();
+                        parents.setHumanName(humanExcel.getParentName());
+                        parents.setTel(humanExcel.getTel());
+                        parents.setHumanType(1);
+                        parents.setCheckFlag(1);
+                        parents.setPassword("0000");
+                        parents.setManagerFlag(1);
+                        parents.setDeleteFlag(0);
+                        parents.setManagerType(5);
+                        HumanInfo parent = humanInfoService.findByTel(parents.getTel());
+                        if(parent==null){
+                            parent = humanInfoService.saveHuman(parents);
+                            HumanMedia praMedia = new HumanMedia();
+                            praMedia.setShowFlag(1);
+                            praMedia.setMediaPath("images/defaultImg.jpg");
+                            praMedia.setCheckFlag(1);
+                            praMedia.setHumanID(parent.getHumanID());
+                            praMedia.setPhoneFlag(1);
+                            humanMediaService.addMedia(praMedia);
+                        }
+
+                        List<ParenStudentRel> parenStudentRelList = parenStudentRelService.
+                                findByHomeIDAndHumanIDAndDeleteFlag(parent.getHumanID(),student.getHumanID(),0);
+                        if(parenStudentRelList==null || parenStudentRelList.size()==0){
+                            ParenStudentRel parenStudentRel = new ParenStudentRel();
+                            parenStudentRel.setHomeID(parent.getHumanID());
+                            parenStudentRel.setHumanID(student.getHumanID());
+                            parenStudentRel.setCheckFlag(1);
+                            parenStudentRelService.addHumanRel(parenStudentRel);
+                        }
+                        relMap.put(student.getHumanID(),parent.getHumanID());
+                    }
+
+
+
+                }else{
+                    continue;
+                }
+
+            }
+        }
+        return relMap;
+    }
+
+    @Transactional   //事务管理
+    public boolean saveFamily(List<HumanExcel> humanExcelList,Map relMap,int schoolID){
+        if(humanExcelList!=null && humanExcelList.size()>0) {
+            for (HumanExcel humanExcel : humanExcelList) {
+                if (humanExcel.getRel()==null ||humanExcel.getRel().trim() == "家属" || "家属".equals(humanExcel.getRel().trim())) {
+                    HumanInfo humanInfo = new HumanInfo();
+                    humanInfo.setHumanType(0);
+                    humanInfo.setHumanName(humanExcel.getHumanName());
+                    humanInfo.setSchoolID(schoolID);
+                    List<GradeInfo> gradeInfoList = gradeInfoService.
+                            findBySchoolIDAndGradeNumAndDeleteFlag(schoolID, humanExcel.getGradeNum(), 0);
+                    if (gradeInfoList != null && gradeInfoList.size() > 0)
+                        humanInfo.setGradeID(gradeInfoList.get(0).getGradeID());
+                    List<ClassInfo> classInfoList = classInfoService.
+                            findBySchoolIDAndGradeIDAndClassNumAndDeleteFlag(schoolID, humanInfo.getGradeID(), humanExcel.getClassNum(), 0);
+                    if (classInfoList != null && classInfoList.size() > 0)
+                        humanInfo.setClassID(classInfoList.get(0).getClassID());
+                    humanInfo.setManagerType(0);
+                    humanInfo.setCheckFlag(1);
+                    humanInfo.setOnline(0);
+                    humanInfo.setPassword("0000");
+                    humanInfo.setAtschoolFlag(0);
+
+                    HumanInfo student = humanInfoService.
+                            findByHumanNameAndSchoolIDAndGradeIDAndClassID(humanExcel.getHumanName(), schoolID, humanInfo.getGradeID(), humanInfo.getClassID());
+                    if (student == null) {
+                        student = humanInfoService.saveHuman(humanInfo);
+                        HumanMedia stuMedia = new HumanMedia();
+                        stuMedia.setShowFlag(1);
+                        stuMedia.setMediaPath("images/defaultImg.jpg");
+                        stuMedia.setCheckFlag(1);
+                        stuMedia.setHumanID(student.getHumanID());
+                        stuMedia.setSchoolID(student.getSchoolID());
+                        stuMedia.setPhoneFlag(1);
+                        humanMediaService.addMedia(stuMedia);
+                    }
+
+                    if(humanExcel.getParentName()!=null && humanExcel.getTel()!=null){
+                        HumanInfo parents = new HumanInfo();
+                        parents.setHumanName(humanExcel.getParentName());
+                        parents.setTel(humanExcel.getTel());
+                        parents.setHumanType(1);
+                        parents.setCheckFlag(1);
+                        parents.setPassword("0000");
+                        parents.setManagerFlag(1);
+                        parents.setManagerType(6);
+                        parents.setDeleteFlag(0);
+                        HumanInfo parent = humanInfoService.findByTel(parents.getTel());
+                        if (parent == null) {
+                            parent = humanInfoService.saveHuman(parents);
+                            HumanMedia praMedia = new HumanMedia();
+                            praMedia.setShowFlag(1);
+                            praMedia.setMediaPath("images/defaultImg.jpg");
+                            praMedia.setCheckFlag(1);
+                            praMedia.setHumanID(parent.getHumanID());
+                            praMedia.setPhoneFlag(1);
+                            humanMediaService.addMedia(praMedia);
+                        }
+
+                        Integer homeid = (Integer) relMap.get(student.getHumanID());
+                        if (homeid != null) {
+                            List<ParenStudentRel> parenStudentRelList = parenStudentRelService.
+                                    findByHomeIDAndHumanIDAndDeleteFlag(homeid, parent.getHumanID(), 0);
+                            if (parenStudentRelList == null || parenStudentRelList.size() == 0) {
+                                ParenStudentRel parenStudentRel = new ParenStudentRel();
+                                parenStudentRel.setHomeID(homeid);
+                                parenStudentRel.setHumanID(parent.getHumanID());
+                                parenStudentRel.setCheckFlag(1);
+                                parenStudentRelService.addHumanRel(parenStudentRel);
+                            }
+
+                        }
+
+
+                        List<ParenStudentRel> parenStudentRelList = parenStudentRelService.
+                                findByHomeIDAndHumanIDAndDeleteFlag(parent.getHumanID(), student.getHumanID(), 0);
+                        if (parenStudentRelList == null || parenStudentRelList.size() == 0) {
+                            ParenStudentRel parenStudentRel = new ParenStudentRel();
+                            parenStudentRel.setHomeID(parent.getHumanID());
+                            parenStudentRel.setHumanID(student.getHumanID());
+                        }
+                        relMap.put(student.getHumanID(), parent.getHumanID());
+                    }
+
+
+                } else {
+                    continue;
+                }
+
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 通知附件上传到服务器
+     **/
+    @RequestMapping(value = "/uploadnotice")
+    @ResponseBody
+    public ResultInfo uploadNotice(HttpServletRequest request,
+                                   @RequestParam("file") MultipartFile file,
+                                   @RequestParam(value = "schoolID", defaultValue = "0") Integer schoolID,
+                                   @RequestParam(value = "noticeType", defaultValue = "1") Integer noticeType,
+                                   @RequestParam(value = "content") String content) throws Exception {
+
+        //System.out.println(description);
+        ResultInfo resultInfo = new ResultInfo(false);
+        //如果文件不为空，写入上传路径
+        if(content.length()>1000){
+            resultInfo.setCode(400);
+            resultInfo.setMessage("通知失败！通知内容长度不得超过1000！");
+            resultInfo.setSuccess(false);
+            return resultInfo;
+        }
+        if (!file.isEmpty()) {
+            //上传文件路径
+            //String path = request.getServletPath();
+
+            SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");//设置日期格式
+            String date = df.format(new Date());// new Date()为获取当前系统时间，也可使用当前时间戳
+            String path = mImagesPath + "notice/"+schoolID+"/" + date;
+            //上传文件名
+            String filename = file.getOriginalFilename();
+
+            File filepath = new File(path, filename);
+            //判断路径是否存在，如果不存在就创建一个
+            if (!filepath.getParentFile().exists()) {
+                filepath.getParentFile().mkdirs();
+            }
+            //将上传文件保存到一个目标文件当中
+            file.transferTo(new File(path + File.separator + filename));
+            String pathSrc = path + File.separator + filename;
+
+
+            String accessoryPath = "images/notice/" +schoolID+"/"+ date + "/" + filename;
+            Notice notice = new Notice();
+
+            notice.setDeleteFlag(0);
+            notice.setAccessoryPath(accessoryPath);
+            notice.setNoticeContent(content);
+            notice.setSchoolID(schoolID);
+            notice.setNoticeType(noticeType);
+
+            notice = noticeService.save(notice);
+
+            noticeService.noticeGeTui(notice,2);
+
+
+
+            resultInfo.setCode(200);
+            resultInfo.setMessage("发送成功！");
+            resultInfo.setSuccess(true);
+            return resultInfo;
+        } else {
+            resultInfo.setCode(400);
+            resultInfo.setMessage("发送失败！无上传文件！");
+            resultInfo.setSuccess(false);
+            return resultInfo;
+        }
+
+    }
+
+    /**
+     * 通知附件上传到服务器
+     **/
+    @RequestMapping(value = "/sendnotice")
+    @ResponseBody
+    public ResultInfo sendNotice(@RequestBody Map<String,Object> jsonMap) throws Exception {
+
+        //System.out.println(description);
+        ResultInfo resultInfo = new ResultInfo(false);
+        Integer schoolID = (Integer) jsonMap.get("schoolID");
+        Integer noticeType = (Integer) jsonMap.get("noticeType");
+        String content = (String) jsonMap.get("content");
+
+        //如果文件不为空，写入上传路径
+        if(content.length()>1000){
+            resultInfo.setCode(400);
+            resultInfo.setMessage("通知失败！通知内容长度不得超过1000！");
+            resultInfo.setSuccess(false);
+            return resultInfo;
+        }
+
+        Notice notice = new Notice();
+
+        notice.setDeleteFlag(0);
+        notice.setNoticeContent(content);
+        notice.setSchoolID(schoolID);
+        notice.setNoticeType(noticeType);
+
+        notice = noticeService.save(notice);
+
+        noticeService.noticeGeTui(notice,2);//1为接送推送，2为通知推送，3为版本更新
+
+        resultInfo.setCode(200);
+        resultInfo.setMessage("发送成功！");
+        resultInfo.setSuccess(true);
+        return resultInfo;
+
+    }
+
+    @RequestMapping(value = "/downloadfile")
+    @ResponseBody
+    public String downloadFile(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        BosUtil bosUtil = new BosUtil();
+        BosClient client = bosUtil.createBosClient();
+        //bosUtil.createBucket(client,"deliverbos9");
+        bosUtil.listBuckets(client);
+        bosUtil.PutObject(client,"deliverbos9","2121.png","D:\\images\\1.png");
+        bosUtil.getObject(response,client,"deliverbos9","2121.png");
+        return null;
+    }
+
 
 }

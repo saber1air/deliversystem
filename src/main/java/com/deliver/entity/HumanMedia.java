@@ -40,6 +40,22 @@ public class HumanMedia extends BaseObject implements Serializable {
     @Column(nullable=true)
     private Integer schoolID;
 
+    @Column(columnDefinition="int default 1",nullable=true)
+    private Integer showFlag=0;//1为头像显示
+
+    @Column(columnDefinition="int default 0",nullable=true)
+    private Integer phoneFlag=0;//1为来自手机端或批量录入的图片，0为来自本地端录入的图片。
+
+    private static final long serialVersionUID = -9057888691340520012L;
+
+    public Integer getPhoneFlag() {
+        return phoneFlag;
+    }
+
+    public void setPhoneFlag(Integer phoneFlag) {
+        this.phoneFlag = phoneFlag;
+    }
+
     public Integer getMediaID() {
         return mediaID;
     }
@@ -120,6 +136,14 @@ public class HumanMedia extends BaseObject implements Serializable {
         this.checkFlag = checkFlag;
     }
 
+    public Integer getShowFlag() {
+        return showFlag;
+    }
+
+    public void setShowFlag(Integer showFlag) {
+        this.showFlag = showFlag;
+    }
+
     @Override
     public String toString() {
         return "HumanMedia{" +
@@ -133,6 +157,8 @@ public class HumanMedia extends BaseObject implements Serializable {
                 ", remarks='" + remarks + '\'' +
                 ", checkFlag=" + checkFlag +
                 ", schoolID=" + schoolID +
+                ", showFlag=" + showFlag +
+                ", phoneFlag=" + phoneFlag +
                 '}';
     }
 }

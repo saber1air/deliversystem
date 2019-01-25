@@ -119,7 +119,7 @@ public class AppPushUtils {
         String appId = "jPX0kbnuCc8Og0gmSBnu3";
         String appKey = "Og6qT7rLNN9fixE8O7ppR4";
         String masterSecret = "x28EanpNuRA1fMjoDS1Tv9";
-        String[] cids = {"3eed2a88629645b825e5a221eddfe1d4"};
+        String[] cids = {"210ae7bec726b9c0935322adb42feee6"};
 
         AppPushUtils pushUtils = new AppPushUtils(appId, appKey, masterSecret);
         for(String cid : cids) {

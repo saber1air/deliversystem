@@ -4,6 +4,7 @@ import com.aliyuncs.exceptions.ClientException;
 import com.deliver.dao.AccessRecordDao;
 import com.deliver.dao.HumanInfoDao;
 import com.deliver.entity.AccessRecord;
+import com.deliver.entity.Advert;
 import com.deliver.entity.HumanInfo;
 import com.deliver.util.FlatSessionStore;
 import com.deliver.util.RedisFlatSessionStore;
@@ -14,9 +15,11 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -72,11 +75,11 @@ public class HumanInfoService {
         if(applyType==0){  //注册申请
             sql = "select a.humanid,a.human_name,a.human_type,a.manager_type,a.tel,a.create_time,b.mediaid,b.media_path \n" +
                     "from tc_human_info a,tc_human_media b where a.humanid=b.humanid and a.check_flag=0 and a.delete_flag=0 " +
-                    "and a.human_type in (0,1) and a.classid="+classID;
+                    "and a.human_type in (0,1) and b.show_flag=1 and a.classid="+classID;
         }else if(applyType==1){ //权限申请
             sql = "select a.humanid,a.human_name,a.human_type,a.manager_type,a.applay_auth,a.tel,a.create_time,b.mediaid,b.media_path \n" +
                     "from tc_human_info a,tc_human_media b where a.humanid=b.humanid and a.check_flag=0 and a.delete_flag=0 " +
-                    "and a.human_type in (0,1) and a.classid="+classID;
+                    "and a.human_type in (0,1) and b.show_flag=1 and a.classid="+classID;
         }
         return jdbcTemplate.queryForList(sql);
     }
@@ -86,11 +89,11 @@ public class HumanInfoService {
         if(applyType==0){  //注册申请
             sql = "select a.humanid,a.human_name,a.human_type,a.manager_type,a.tel,a.schoolid,a.create_time,b.mediaid,b.media_path \n" +
                     "from tc_human_info a,tc_human_media b,tc_parent_student_rel c where a.check_flag=0 and a.delete_flag=0  " +
-                    "and c.homeid="+humanID+" and a.humanid=c.humanid and a.humanid=b.humanid and a.human_type=1";
+                    "and c.homeid="+humanID+" and a.humanid=c.humanid and b.show_flag=1 and a.humanid=b.humanid and a.human_type=1";
         }else if(applyType==1){ //权限申请
             sql = "select a.humanid,a.human_name,a.human_type,a.applay_auth,a.manager_type,a.tel,a.schoolid,a.create_time,b.mediaid,b.media_path \n" +
                     "from tc_human_info a,tc_human_media b,tc_parent_student_rel c where a.check_flag=0 and a.delete_flag=0  " +
-                    "and c.homeid="+humanID+" and a.humanid=c.humanid and a.humanid=b.humanid and a.human_type=1";
+                    "and c.homeid="+humanID+" and a.humanid=c.humanid and b.show_flag=1 and a.humanid=b.humanid and a.human_type=1";
         }
 
         return jdbcTemplate.queryForList(sql);
@@ -101,11 +104,11 @@ public class HumanInfoService {
         if(applyType==0){
             sql = "select a.humanid,a.human_name,a.human_type,a.manager_type,a.tel,a.create_time,b.mediaid,b.media_path \n" +
                     "from tc_human_info a,tc_human_media b where a.humanid=b.humanid and a.check_flag=0 and a.delete_flag=0  " +
-                    "and a.human_type=2 and a.schoolid="+schoolID;
+                    "and a.human_type=2 and b.show_flag=1 and a.schoolid="+schoolID;
         }else if(applyType==1){
             sql = "select a.humanid,a.human_name,a.human_type,a.manager_type,a.applay_auth,a.tel,a.create_time,b.mediaid,b.media_path \n" +
                     "from tc_human_info a,tc_human_media b where a.humanid=b.humanid and a.check_flag=0 and a.delete_flag=0  " +
-                    "and a.human_type=2 and a.schoolid="+schoolID;
+                    "and a.human_type=2 and b.show_flag=1 and a.schoolid="+schoolID;
         }
         return jdbcTemplate.queryForList(sql);
     }
@@ -115,12 +118,12 @@ public class HumanInfoService {
         if(applyType==0){//人员注册录入
             sql = "select a.humanid,a.human_name,a.human_type,a.manager_type,a.tel,a.create_time,b.mediaid,b.media_path \n" +
                     "from tc_human_info a,tc_human_media b where a.humanid=b.humanid and a.check_flag=0 and a.delete_flag=0  " +
-                    "and a.human_type=3";
+                    "and a.human_type=3 and b.show_flag=1";
             return jdbcTemplate.queryForList(sql);
         }else if(applyType==1){//人员权限申请
             sql = "select a.humanid,a.human_name,a.human_type,a.manager_type,a.applay_auth,a.tel,a.create_time,b.mediaid,b.media_path \n" +
                     "from tc_human_info a,tc_human_media b where a.humanid=b.humanid and a.check_flag=0 and a.delete_flag=0  " +
-                    "and a.human_type=3";
+                    "and a.human_type=3 and b.show_flag=1";
             return jdbcTemplate.queryForList(sql);
         }
         return null;
@@ -191,6 +194,15 @@ public class HumanInfoService {
             resultInfo.setSuccess(true);
         }
         return resultInfo;
+    }
+
+    public HumanInfo editHumans(HumanInfo human) {
+        if (human.getHumanID() != null) {
+            human.setUpdateTime(new Date());
+            return humanInfoDao.save(human);
+
+        }
+        return new HumanInfo();
     }
 
     public ResultInfo delHuman(int humanID) {
@@ -280,7 +292,7 @@ public class HumanInfoService {
                 "a.mediaid,a.media_path,b.gradeid,b.grade_name,b.grade_num,c.classid,c.class_name,c.class_num,d.schoolid,\n" +
                 "d.school_name from tc_human_media a,tc_human_info t LEFT JOIN tc_school d on t.schoolid=d.schoolid \n" +
                 "LEFT JOIN tc_grade_info b on t.gradeid=b.gradeid LEFT JOIN tc_class_info c on t.classid=c.classid \n" +
-                "where t.check_flag=1 and a.check_flag=1 and t.delete_flag=0 and t.humanid=a.humanid and a.delete_flag=0 ";
+                "where t.check_flag=1 and a.check_flag=1 and a.show_flag=1 and t.delete_flag=0 and t.humanid=a.humanid and a.delete_flag=0 ";
         if(humanType==0 || humanType==2 || humanType==3){
             if (schoolID != null && schoolID != -1) {
                 sql += " and t.schoolid =" + schoolID;
@@ -350,7 +362,7 @@ public class HumanInfoService {
         String sql = "select a.humanid,a.human_name,a.human_type,a.applay_auth,a.check_flag,a.tel,b.mediaid," +
                 "b.media_path,c.operate_humid from tc_human_info a,tc_human_media b,tc_manager_register_record c " +
                 "where a.delete_flag=0 and b.delete_flag=0 and c.delete_flag=0 and a.check_flag=0 and " +
-                "a.humanid=b.humanid and a.humanid=c.reg_managerid and c.check_flag=0 and c.classid=" + classID;
+                "a.humanid=b.humanid and a.humanid=c.reg_managerid and b.show_flag=1 and c.check_flag=0 and c.classid=" + classID;
         List<Map<String, Object>> humanlist = jdbcTemplate.queryForList(sql);
         resultInfo.addData("humanlist", humanlist);
         resultInfo.setCode(200);
@@ -379,17 +391,19 @@ public class HumanInfoService {
                 " LEFT JOIN tc_grade_info d on t.gradeid=d.gradeid LEFT JOIN tc_class_info e on t.classid=e.classid where a.homeid in \n" +
                 " (select DISTINCT homeid from tc_parent_student_rel where (homeid="+human.getHumanID()+" or humanid="+human.getHumanID()+")) and t.humanid<>"+human.getHumanID()+" \n" +
                 " and (t.humanid=a.humanid or t.humanid=a.homeid) and t.humanid=b.humanid and t.check_flag=1 and t.delete_flag=0 and a.check_flag=1 \n" +
-                " and a.delete_flag=0 and (b.check_flag=1 or b.check_flag=null) and (b.delete_flag=0 or b.delete_flag=null)";
+                " and a.delete_flag=0 and b.show_flag=1 and (b.check_flag=1 or b.check_flag=null) and (b.delete_flag=0 or b.delete_flag=null)";
         return jdbcTemplate.queryForList(sql);
     }
 
     public List<Map<String, Object>> teacherFindNoAtSchool(HumanInfo human){
-        String sql = "select a.humanid,a.human_name,a.human_type,b.mediaid,b.media_path," +
-                " d.humanid as parentid,d.human_name as parent_name,d.tel from " +
-                " tc_human_info a,tc_human_media b,tc_parent_student_rel c,tc_human_info d \n" +
-                " where a.atschool_flag=0 and a.check_flag=1 and a.delete_flag=0 " +
-                " and a.human_type=0 and a.classid=" +human.getClassID()+
-                " and a.humanid=b.humanid and a.humanid=c.humanid and c.homeid=d.humanid ORDER BY a.humanid";
+    	String sql = "select a.humanid,a.human_name,a.human_type,b.mediaid,"
+        		+ "b.media_path,d.humanid as parentid,d.human_name as parent_name,"
+        		+ "d.tel from tc_human_info a LEFT JOIN "
+        		+ "tc_parent_student_rel c on a.humanid=c.humanid LEFT JOIN "
+        		+ "tc_human_info d on c.homeid=d.humanid,tc_human_media b "
+        		+ "where a.atschool_flag=0 and a.check_flag=1 and a.delete_flag=0 "
+        		+ "and a.human_type=0 and a.classid="+human.getClassID()+" and "
+        				+ "a.humanid=b.humanid and b.delete_flag=0 and b.show_flag=1 ORDER BY a.humanid";
         List<Map<String,Object>> humanlist1 = jdbcTemplate.queryForList(sql);
         List<Map<String,Object>> humanlist = new ArrayList<Map<String,Object>>();
         if(humanlist1!=null && humanlist1.size()>0){
@@ -397,6 +411,7 @@ public class HumanInfoService {
             int humanid =0;
             for(Map<String,Object> map : humanlist1){
                 if((Integer) map.get("humanid")!=humanid){
+                    humanid=(Integer)map.get("humanid");
                     humanlist.add(map);
                 }
             }
@@ -405,12 +420,14 @@ public class HumanInfoService {
     }
 
     public List<Map<String, Object>> teacherFindAtSchool(HumanInfo human){
-        String sql = "select a.humanid,a.human_name,a.human_type,b.mediaid,b.media_path," +
-                " d.humanid as parentid,d.human_name as parent_name,d.tel " +
-                " from tc_human_info a,tc_human_media b,tc_parent_student_rel c,tc_human_info d \n" +
-                " where a.atschool_flag=1 and a.check_flag=1 and a.delete_flag=0 " +
-                " and a.human_type=0 and a.classid=" +human.getClassID()+
-                " and a.humanid=b.humanid and a.humanid=c.humanid and c.homeid=d.humanid ORDER BY a.humanid";
+        String sql = "select a.humanid,a.human_name,a.human_type,b.mediaid,"
+        		+ "b.media_path,d.humanid as parentid,d.human_name as parent_name,"
+        		+ "d.tel from tc_human_info a LEFT JOIN "
+        		+ "tc_parent_student_rel c on a.humanid=c.humanid LEFT JOIN "
+        		+ "tc_human_info d on c.homeid=d.humanid,tc_human_media b "
+        		+ "where a.atschool_flag=1 and a.check_flag=1 and a.delete_flag=0 "
+        		+ "and a.human_type=0 and a.classid="+human.getClassID()+" and "
+        				+ "a.humanid=b.humanid and b.delete_flag=0 and b.show_flag=1 ORDER BY a.humanid";
         List<Map<String,Object>> humanlist1 = jdbcTemplate.queryForList(sql);
         List<Map<String,Object>> humanlist = new ArrayList<Map<String,Object>>();
         if(humanlist1!=null && humanlist1.size()>0){
@@ -418,12 +435,15 @@ public class HumanInfoService {
             int humanid =0;
             for(Map<String,Object> map : humanlist1){
                 if((Integer) map.get("humanid")!=humanid){
+                    humanid=(Integer)map.get("humanid");
                     humanlist.add(map);
                 }
             }
         }
         return humanlist;
     }
+
+
 
 
 

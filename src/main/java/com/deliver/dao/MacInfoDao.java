@@ -4,6 +4,7 @@ import com.deliver.entity.HumanInfo;
 import com.deliver.entity.HumanType;
 import com.deliver.entity.MacInfo;
 import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,22 +20,26 @@ import java.util.List;
 @CacheConfig(cacheNames = "macInfo")
 public interface MacInfoDao extends JpaRepository<MacInfo, Integer> {
     //@Cacheable()  //查询缓存
+    @Cacheable(value="macs")
     MacInfo findByMacID(int id);
 
 //    @Cacheable()  //查询缓存
+    @Cacheable(value="macs")
     MacInfo findByMacName(String macName);
 
     //@Cacheable()  //查询缓存
+    @Cacheable(value="macs")
     List<MacInfo> findBySchoolIDAndDeleteFlag(int id, int deleteflag) ;
 
     //@Cacheable()  //查询缓存
+    @Cacheable(value="macs")
     List<MacInfo> findByDeleteFlag(int deleteflag) ;
 
     /**
      * 新增或修改时
      */
-    @CachePut()//往缓存中新增
     @Override
+    @CacheEvict(value="macs", allEntries=true)
     public MacInfo save(MacInfo macInfo);
 
     @Transactional   //事务管理

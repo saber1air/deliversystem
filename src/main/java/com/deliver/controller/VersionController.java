@@ -46,7 +46,7 @@ public class VersionController {
     }
 
     /**
-     * 版本更新接口
+     * 版本新增接口
      */
     @RequestMapping(value="/addversion")
     @ResponseBody

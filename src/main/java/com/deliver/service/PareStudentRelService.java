@@ -49,6 +49,10 @@ public class PareStudentRelService {
         return pareStudentRelDao.findByHomeIDAndHumanID(parentID,studentID);
     }
 
+    public List<ParenStudentRel> findByHomeIDAndHumanIDAndDeleteFlag(int parentID, int studentID,int deleteFlag){
+        return pareStudentRelDao.findByHomeIDAndHumanIDAndDeleteFlag(parentID,studentID,deleteFlag);
+    }
+
 
     public List<ParenStudentRel> findByHomeIDAndHumanIDAndSchoolID(int parentID, int studentID,int schoolID){
         return pareStudentRelDao.findByHomeIDAndHumanIDAndSchoolID(parentID,studentID,schoolID);

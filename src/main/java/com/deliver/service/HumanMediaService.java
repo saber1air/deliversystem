@@ -16,6 +16,9 @@ import java.util.List;
 
 @Service
 public class HumanMediaService {
+
+
+
     @Autowired
     private HumanMediaDao humanMediaDao;
 
@@ -58,6 +61,11 @@ public class HumanMediaService {
         return humanMediaDao.save(humanMedia);
     }
 
+    public HumanMedia setMediaShow(HumanMedia humanMedia){
+        //humanMedia.setUpdateTime(new Date());
+        return humanMediaDao.save(humanMedia);
+    }
+
     public HumanMedia delMedia(HumanMedia humanMedia){
         humanMedia.setUpdateTime(new Date());
         humanMedia.setDeleteFlag(1);
@@ -70,6 +78,14 @@ public class HumanMediaService {
 
     public List<HumanMedia> findByHumanIDAndDeleteFlagAndCheckFlag(int id ,int deleteFlag,int checkFlag){
         return humanMediaDao.findByHumanIDAndDeleteFlagAndCheckFlag(id,deleteFlag,checkFlag);
+    }
+
+    public List<HumanMedia> findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlagOrderByCreateTimeDesc(int id ,int deleteFlag,int checkFlag,int showFlag){
+        return humanMediaDao.findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlagOrderByCreateTimeDesc(id,deleteFlag,checkFlag,showFlag);
+    }
+
+    public List<HumanMedia> findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlag(int id ,int deleteFlag,int checkFlag,int showFlag){
+        return humanMediaDao.findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlag(id,deleteFlag,checkFlag,showFlag);
     }
 
 }

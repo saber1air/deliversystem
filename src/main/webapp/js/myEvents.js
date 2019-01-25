@@ -3,13 +3,14 @@
  */
 var token = sessionStorage.getItem('token');
 var loginHumanFace = sessionStorage.getItem('loginHumanFace');
-var loginHuman =JSON.parse(sessionStorage.getItem('loginHuman'));
+var loginHuman = JSON.parse(sessionStorage.getItem('loginHuman'));
 var humanType = parseInt(sessionStorage.getItem('humanType'));
 var loginID = parseInt(sessionStorage.getItem('loginID'));
 initPage(loginID, humanType, token);
 var humanTypeList = ['学生', '家长', '老师', '园方管理员', '超级管理员', '其他人员'];
 var manageTypeList = ['学生', '超级管理员', '园方管理员', '班主任', '老师', '家长', '家属', '其他人员'];
-// var serverPath = 'http://10.0.3.134:8080/deliver/';
+// var serverPath = 'http://106.12.125.175:8080/deliver/';
+// serverPath ='http://192.168.43.240:8080/deliver/';
 var serverPath = '';
 var schoolData = JSON.parse(sessionStorage.getItem('schoolData'));
 var faceFeatrue = '';
@@ -237,10 +238,11 @@ var selectedItem = new Set();
 var uploadPic = new FormData();
 var uploadAD = new FormData();
 var uploadApp = new FormData();
+var uploadMessage = new FormData();
 
-if(loginHuman){
-    $("#loginPic").attr('src',serverPath+loginHumanFace);
-    $("#loginHumanInfo").html("登录人员："+loginHuman.humanName+"（"+manageTypeList[parseInt(loginHuman.managerType)]+"）");
+if (loginHuman) {
+    $("#loginPic").attr('src', serverPath + loginHumanFace);
+    $("#loginHumanInfo").html("登录人员：" + loginHuman.humanName + "（" + manageTypeList[parseInt(loginHuman.managerType)] + "）");
 }
 //左侧导航栏人员管理按钮绑定事件
 $("#humanManagementMenuBtn").click(function () {
@@ -297,7 +299,7 @@ $("#schoolManagementMenuBtn").click(function () {
     pageContent = schoolData;
     pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
     $("#entityManagementSchool_searchResult").css('display', '');
-    currentPageNum =1;
+    currentPageNum = 1;
     changePage(currentManageType, pageContent, 1, pageItemsNum);
     initPagination(pageTotalNum);
 });
@@ -359,12 +361,12 @@ $("#inoutManagement_atSchoolSearchMenuBtn").click(function () {
         var schoolResult = "<option value=" + schoolItem.schoolID + ">" + schoolItem.schoolName + "</option>";
         pageSchool.append(schoolResult);
     }
-    if(loginHuman.schoolID){
+    if (loginHuman.schoolID) {
         for (var i = 0; i < schoolData.length; i++) {
             var schoolItem = schoolData[i];
-            if((''+schoolItem.schoolID) == (''+loginHuman.schoolID)){
+            if (('' + schoolItem.schoolID) == ('' + loginHuman.schoolID)) {
                 var gradeItem = schoolData[i].gradeInfo;
-                for(var j = 0;j<gradeItem.length;j++){
+                for (var j = 0; j < gradeItem.length; j++) {
                     var gradeResult = "<option value=" + gradeItem[j].gradeID + ">" + gradeItem[j].gradeName + "</option>";
                     pageGrade.append(gradeResult);
                 }
@@ -376,32 +378,56 @@ $("#inoutManagement_record_historyMenuBtn").click(function () {
     currentManageType = 'record_history';
     var contName = $(this).attr("id");
     initContentView(contName);
+    var inout_School = $("#inoutManagement_record_school");
+    if (loginHuman.managerType == '1') {
+        for (var i = 0; i < schoolData.length; i++) {
+            var temp = " <option value='" + schoolData[i].schoolID + "' >" + schoolData[i].schoolName + "</option>";
+            inout_School.append(temp);
+        }
+    } else {
+        inout_School.html('');
+    }
 });
 $("#applyManagementMenuBtn").click(function () {
     currentManageType = 'applyManage';
     var contName = $(this).attr("id");
     initContentView(contName);
 });
-$("#upLoadManagementMenuBtn").click(function(){
+$("#upLoadManagementMenuBtn").click(function () {
     currentManageType = 'upLoadManage';
     var contName = $(this).attr("id");
     initContentView(contName);
     var pichSchool = $("#pichSchool");
     var adPichSchool = $("#adPichSchool");
+    if (loginHuman.managerType == '1') {
+        for (var i = 0; i < schoolData.length; i++) {
+            var temp = " <option value='" + schoolData[i].schoolID + "' >" + schoolData[i].schoolName + "</option>";
+            pichSchool.append(temp);
+        }
+        for (var i = 0; i < schoolData.length; i++) {
+            var temp = " <option value='" + schoolData[i].schoolID + "' >" + schoolData[i].schoolName + "</option>";
+            adPichSchool.append(temp);
+        }
+    } else {
+        pichSchool.html('');
+        adPichSchool.html('');
+    }
+});
+$("#messagePushManagementMenuBtn").click(function () {
+    currentManageType = 'messagePushManagement';
+    var contName = $(this).attr("id");
+    initContentView(contName);
+    var pichSchool = $("#messagePush_school");
+    pichSchool.html('');
     if(loginHuman.managerType =='1'){
         for(var i =0;i<schoolData.length;i++){
             var temp = " <option value='"+schoolData[i].schoolID+"' >"+schoolData[i].schoolName+"</option>";
             pichSchool.append(temp);
         }
-        for(var i =0;i<schoolData.length;i++){
-            var temp = " <option value='"+schoolData[i].schoolID+"' >"+schoolData[i].schoolName+"</option>";
-            adPichSchool.append(temp);
-        }
     }else{
         pichSchool.html('');
-        adPichSchool.html('');
     }
-})
+});
 
 //下拉框绑定变更事件
 $("#addEntityHuman_school").bind("change", function () {
@@ -501,7 +527,7 @@ $("#gradeManagement_schoolID").bind("change", function () {
     for (var i = 0; i < schoolData.length; i++) {
         if (parseInt(schoolIDValue) == schoolData[i].schoolID) {
             pageContent = schoolData[i].gradeInfo;
-            currentPageNum =1;
+            currentPageNum = 1;
             changePage(currentManageType, pageContent, 1, pageItemsNum);
             pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
             initPagination(pageTotalNum);
@@ -546,7 +572,7 @@ $("#classManagement_gradeID").bind("change", function () {
             }
         }
     }
-    currentPageNum =1;
+    currentPageNum = 1;
     changePage(currentManageType, pageContent, 1, pageItemsNum);
     pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
     initPagination(pageTotalNum);
@@ -560,7 +586,7 @@ $("#facilityManagement_schoolID").bind("change", function () {
     for (var i = 0; i < schoolData.length; i++) {
         if (schoolIDValue == schoolData[i].schoolID) {
             pageContent = schoolData[i].macInfo;
-            currentPageNum =1;
+            currentPageNum = 1;
             changePage(currentManageType, pageContent, 1, pageItemsNum);
             pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
             initPagination(pageTotalNum);
@@ -629,9 +655,9 @@ $("#atSchoolSearch_school").bind("change", function () {
 });
 $("#atSchoolSearch_grade").bind("change", function () {
     var gradeIDValue = $(this).val();
-    if(loginHuman.schoolID){
+    if (loginHuman.schoolID) {
         var schoolIDValue = loginHuman.schoolID;
-    }else{
+    } else {
         var schoolIDValue = $("#atSchoolSearch_school").val();
     }
     var pageClass = $("#atSchoolSearch_class");
@@ -654,76 +680,76 @@ $("#atSchoolSearch_grade").bind("change", function () {
     }
     ;
 });
-$("#addEntityHuman_manageType").bind('change',function () {
+$("#addEntityHuman_manageType").bind('change', function () {
     var currentManagerType = $(this).val();
-    switch (parseInt(currentManagerType)){
+    switch (parseInt(currentManagerType)) {
         case 0:
-            $("#addEntityHuman_schoolDiv").css('display','');
-            $("#addEntityHuman_gradeDiv").css('display','');
-            $("#addEntityHuman_classDiv").css('display','');
-            $("#addEntityHuman_parentNameDiv").css('display','');
-            $("#addEntityHuman_parentTelDiv").css('display','');
-            $("#addEntityHuman_telDiv").css('display','none');
-            $("#addEntityHuman_passwordDiv").css('display','none');
+            $("#addEntityHuman_schoolDiv").css('display', '');
+            $("#addEntityHuman_gradeDiv").css('display', '');
+            $("#addEntityHuman_classDiv").css('display', '');
+            $("#addEntityHuman_parentNameDiv").css('display', '');
+            $("#addEntityHuman_parentTelDiv").css('display', '');
+            $("#addEntityHuman_telDiv").css('display', 'none');
+            $("#addEntityHuman_passwordDiv").css('display', 'none');
             break;
         case 1:
-            $("#addEntityHuman_schoolDiv").css('display','none');
-            $("#addEntityHuman_gradeDiv").css('display','none');
-            $("#addEntityHuman_classDiv").css('display','none');
-            $("#addEntityHuman_parentNameDiv").css('display','none');
-            $("#addEntityHuman_parentTelDiv").css('display','none');
-            $("#addEntityHuman_telDiv").css('display','');
-            $("#addEntityHuman_passwordDiv").css('display','');
+            $("#addEntityHuman_schoolDiv").css('display', 'none');
+            $("#addEntityHuman_gradeDiv").css('display', 'none');
+            $("#addEntityHuman_classDiv").css('display', 'none');
+            $("#addEntityHuman_parentNameDiv").css('display', 'none');
+            $("#addEntityHuman_parentTelDiv").css('display', 'none');
+            $("#addEntityHuman_telDiv").css('display', '');
+            $("#addEntityHuman_passwordDiv").css('display', '');
             break;
         case 2:
-            $("#addEntityHuman_schoolDiv").css('display','');
-            $("#addEntityHuman_gradeDiv").css('display','none');
-            $("#addEntityHuman_classDiv").css('display','none');
-            $("#addEntityHuman_parentNameDiv").css('display','none');
-            $("#addEntityHuman_parentTelDiv").css('display','none');
-            $("#addEntityHuman_telDiv").css('display','');
-            $("#addEntityHuman_passwordDiv").css('display','');
+            $("#addEntityHuman_schoolDiv").css('display', '');
+            $("#addEntityHuman_gradeDiv").css('display', 'none');
+            $("#addEntityHuman_classDiv").css('display', 'none');
+            $("#addEntityHuman_parentNameDiv").css('display', 'none');
+            $("#addEntityHuman_parentTelDiv").css('display', 'none');
+            $("#addEntityHuman_telDiv").css('display', '');
+            $("#addEntityHuman_passwordDiv").css('display', '');
             break;
         case 3:
-            $("#addEntityHuman_schoolDiv").css('display','');
-            $("#addEntityHuman_gradeDiv").css('display','');
-            $("#addEntityHuman_classDiv").css('display','');
-            $("#addEntityHuman_parentNameDiv").css('display','none');
-            $("#addEntityHuman_parentTelDiv").css('display','none');
-            $("#addEntityHuman_telDiv").css('display','');
-            $("#addEntityHuman_passwordDiv").css('display','');
+            $("#addEntityHuman_schoolDiv").css('display', '');
+            $("#addEntityHuman_gradeDiv").css('display', '');
+            $("#addEntityHuman_classDiv").css('display', '');
+            $("#addEntityHuman_parentNameDiv").css('display', 'none');
+            $("#addEntityHuman_parentTelDiv").css('display', 'none');
+            $("#addEntityHuman_telDiv").css('display', '');
+            $("#addEntityHuman_passwordDiv").css('display', '');
             break;
         case 4:
-            $("#addEntityHuman_schoolDiv").css('display','');
-            $("#addEntityHuman_gradeDiv").css('display','none');
-            $("#addEntityHuman_classDiv").css('display','none');
-            $("#addEntityHuman_parentNameDiv").css('display','none');
-            $("#addEntityHuman_parentTelDiv").css('display','none');
-            $("#addEntityHuman_telDiv").css('display','');
-            $("#addEntityHuman_passwordDiv").css('display','');
+            $("#addEntityHuman_schoolDiv").css('display', '');
+            $("#addEntityHuman_gradeDiv").css('display', 'none');
+            $("#addEntityHuman_classDiv").css('display', 'none');
+            $("#addEntityHuman_parentNameDiv").css('display', 'none');
+            $("#addEntityHuman_parentTelDiv").css('display', 'none');
+            $("#addEntityHuman_telDiv").css('display', '');
+            $("#addEntityHuman_passwordDiv").css('display', '');
             break;
         case 5:
-            $("#addEntityHuman_schoolDiv").css('display','none');
-            $("#addEntityHuman_gradeDiv").css('display','none');
-            $("#addEntityHuman_classDiv").css('display','none');
-            $("#addEntityHuman_parentNameDiv").css('display','none');
-            $("#addEntityHuman_parentTelDiv").css('display','none');
-            $("#addEntityHuman_telDiv").css('display','');
-            $("#addEntityHuman_passwordDiv").css('display','');
+            $("#addEntityHuman_schoolDiv").css('display', 'none');
+            $("#addEntityHuman_gradeDiv").css('display', 'none');
+            $("#addEntityHuman_classDiv").css('display', 'none');
+            $("#addEntityHuman_parentNameDiv").css('display', 'none');
+            $("#addEntityHuman_parentTelDiv").css('display', 'none');
+            $("#addEntityHuman_telDiv").css('display', '');
+            $("#addEntityHuman_passwordDiv").css('display', '');
             break;
         case 6:
-            $("#addEntityHuman_schoolDiv").css('display','none');
-            $("#addEntityHuman_gradeDiv").css('display','none');
-            $("#addEntityHuman_classDiv").css('display','none');
-            $("#addEntityHuman_parentNameDiv").css('display','');
-            $("#addEntityHuman_parentTelDiv").css('display','');
-            $("#addEntityHuman_telDiv").css('display','');
-            $("#addEntityHuman_passwordDiv").css('display','');
+            $("#addEntityHuman_schoolDiv").css('display', 'none');
+            $("#addEntityHuman_gradeDiv").css('display', 'none');
+            $("#addEntityHuman_classDiv").css('display', 'none');
+            $("#addEntityHuman_parentNameDiv").css('display', '');
+            $("#addEntityHuman_parentTelDiv").css('display', '');
+            $("#addEntityHuman_telDiv").css('display', '');
+            $("#addEntityHuman_passwordDiv").css('display', '');
             break;
         default:
             break;
     }
-})
+});
 
 //查询按钮事件
 $("#entityManagementHuman_searchBtn").click(function () {
@@ -731,19 +757,19 @@ $("#entityManagementHuman_searchBtn").click(function () {
     zeroModal.loading(6);
     //初始化新增框
     $("#addEntityHuman_manageType").val(-1);
-    $("#addEntityHuman_schoolDiv").css('display','none');
-    $("#addEntityHuman_gradeDiv").css('display','none');
-    $("#addEntityHuman_classDiv").css('display','none');
-    $("#addEntityHuman_parentNameDiv").css('display','none');
-    $("#addEntityHuman_parentTelDiv").css('display','none');
-    $("#addEntityHuman_telDiv").css('display','none');
-    $("#addEntityHuman_passwordDiv").css('display','none');
-    $("#addEntityHuman_checkDiv").css('display','none');
+    $("#addEntityHuman_schoolDiv").css('display', 'none');
+    $("#addEntityHuman_gradeDiv").css('display', 'none');
+    $("#addEntityHuman_classDiv").css('display', 'none');
+    $("#addEntityHuman_parentNameDiv").css('display', 'none');
+    $("#addEntityHuman_parentTelDiv").css('display', 'none');
+    $("#addEntityHuman_telDiv").css('display', 'none');
+    $("#addEntityHuman_passwordDiv").css('display', 'none');
+    $("#addEntityHuman_checkDiv").css('display', 'none');
     // $("#addEntityHuman_manageType").val(-1);
-    var _school='';
-    if(loginHuman.schoolID){
+    var _school = '';
+    if (loginHuman.schoolID) {
         _school = parseInt(loginHuman.schoolID);
-    }else{
+    } else {
         _school = $("#entityManagementHuman_school").val();
     }
     $.ajax(
@@ -767,7 +793,7 @@ $("#entityManagementHuman_searchBtn").click(function () {
                 zeroModal.closeAll();
                 if (data.success && data.data.humanlist) {
                     pageContent = data.data.humanlist;
-                    currentPageNum =1;
+                    currentPageNum = 1;
                     changePage(currentManageType, pageContent, 1, pageItemsNum);
                     //初始化分页
                     pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
@@ -787,6 +813,11 @@ $("#entityManagementHuman_searchBtn").click(function () {
     )
 });
 $("#inoutManagement_record_history_searchBtn").click(function () {
+    if (parseInt(loginHuman.managerType) > 1) {
+        search_schoolID = parseInt(loginHuman.schoolID);
+    } else {
+        search_schoolID = parseInt($(inoutManagement_record_school).val());
+    }
     zeroModal.loading(6);
     $.ajax(
         {
@@ -797,9 +828,7 @@ $("#inoutManagement_record_history_searchBtn").click(function () {
             data: JSON.stringify({
                 humanName: $('#inoutManagement_record_history_humanname').val(),
                 accessType: $('#inoutManagement_record_history_accesstype').val(),
-                // gradeID: $('#atSchoolSearch_grade').val(),
-                // classID: $('#atSchoolSearch_class').val(),
-                // schoolID: $('#atSchoolSearch_school').val(),
+                schoolID: search_schoolID,
                 humanType: $('#inoutManagement_record_history_humantype').val(),
                 deliverType: $('#inoutManagement_record_history_delivertype').val(),
                 beginTime: $('#inoutManagement_record_history_starttime').val(),
@@ -929,9 +958,9 @@ $("#inoutManagement_record_history_searchBtn").click(function () {
 });
 $("#atSchoolSearch_searchBtn").click(function () {
     var _school = '';
-    if(loginHuman.schoolID){
+    if (loginHuman.schoolID) {
         _school = parseInt(loginHuman.schoolID);
-    }else{
+    } else {
         _school = $("#atSchoolSearch_school").val();
     }
     zeroModal.loading(6);
@@ -1019,7 +1048,7 @@ $("#applyManagement_searchBtn").click(function () {
                 zeroModal.closeAll();
                 if (data.success) {
                     pageContent = data.data.humanlist;
-                    currentPageNum =1;
+                    currentPageNum = 1;
                     changePage(currentManageType, pageContent, 1, pageItemsNum);
                     //初始化分页
                     pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
@@ -1053,6 +1082,64 @@ $("#applyManagement_searchBtn").click(function () {
         }
     )
 });
+$("#messagePush_searchBtn").click(function () {
+    if(loginHuman.managerType =='1'){
+        var _school_id = parseInt($("#messagePush_school").val());
+    }else{
+        var _school_id = parseInt(loginHuman.schoolID);
+    }
+    zeroModal.loading(6);
+    $.ajax(
+        {
+            url: serverPath + "notice/findnoticerecord",
+            async: true,
+            type: 'POST',
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify({
+                schoolID: _school_id,
+                noticeType: parseInt($("#messagePush_humanType").val()),
+                startTime: $("#messagePush_starttime").val(),
+                endTime: $("#messagePush_endtime").val()
+
+            }),
+            dataType: "json",
+            success: function (data) {
+                zeroModal.closeAll();
+                if (data.success) {
+                    pageContent = data.data.noticeRecordList;
+                    currentPageNum = 1;
+                    changePage(currentManageType, pageContent, 1, pageItemsNum);
+                    //初始化分页
+                    pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
+                    //TODO 消息分页
+                    $("#messagePushManagement_control").css('display', '');
+                    $("#messagePushManagement_paginationPrevious").addClass('disabled');
+                    if (pageContent.length > pageItemsNum) {
+                        $("#messagePushManagement_paginationNext").removeClass('disabled');
+                    } else {
+                        $("#messagePushManagement_paginationNext").addClass('disabled');
+                    }
+                    $('#messagePushManagement_paginationSelectNum').html("");
+                    for (var i = 0; i < pageTotalNum; i++) {
+                        $('#messagePushManagement_paginationSelectNum').append("<option value='" + (i + 1) + "'>" + (i + 1) + "</option>");
+                    }
+
+                    //初始化结果
+                    $("#messagePush_searchResult").css('display', '');
+
+                } else {
+                    showMessage(data.message, 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+                }
+                ;
+            },
+            error: function (xhr) {
+                zeroModal.closeAll();
+                showMessage('查询失败！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+            }
+        }
+    )
+});
+
 
 //分页按钮事件
 $("#paginationNext").click(function () {
@@ -1070,7 +1157,17 @@ $("#applyPaginationNext").click(function () {
         return;
     }
     currentPageNum++;
-    $("#applyPaginationChangePageBtn").val(currentPageNum);
+    $("#applyPaginationSelectNum").val(currentPageNum);
+    changePage(currentManageType, pageContent, currentPageNum, pageItemsNum);
+    selectMode = false;
+
+});
+$("#messagePushManagement_paginationNext").click(function () {
+    if (currentPageNum == pageTotalNum) {
+        return;
+    }
+    currentPageNum++;
+    $("#messagePushManagement_paginationSelectNum").val(currentPageNum);
     changePage(currentManageType, pageContent, currentPageNum, pageItemsNum);
     selectMode = false;
 
@@ -1089,7 +1186,16 @@ $("#applyPaginationPrevious").click(function () {
         return;
     }
     currentPageNum--;
-    $("#applyPaginationChangePageBtn").val(currentPageNum);
+    $("#applyPaginationSelectNum").val(currentPageNum);
+    changePage(currentManageType, pageContent, currentPageNum, pageItemsNum);
+    selectMode = false;
+});
+$("#messagePushManagement_paginationPrevious").click(function () {
+    if (currentPageNum == 1) {
+        return;
+    }
+    currentPageNum--;
+    $("#messagePushManagement_paginationSelectNum").val(currentPageNum);
     changePage(currentManageType, pageContent, currentPageNum, pageItemsNum);
     selectMode = false;
 });
@@ -1105,6 +1211,15 @@ $("#paginationChangePageBtn").click(function () {
 });
 $("#applyPaginationChangePageBtn").click(function () {
     var paginationSelectedNum = $("#applyPaginationSelectNum").val();
+    if (paginationSelectedNum != currentPageNum) {
+        currentPageNum = paginationSelectedNum;
+        changePage(currentManageType, pageContent, currentPageNum, pageItemsNum);
+        selectMode = false;
+    } else {
+    }
+});
+$("#messagePushManagement_paginationChangePageBtn").click(function () {
+    var paginationSelectedNum = $("#messagePushManagement_paginationSelectNum").val();
     if (paginationSelectedNum != currentPageNum) {
         currentPageNum = paginationSelectedNum;
         changePage(currentManageType, pageContent, currentPageNum, pageItemsNum);
@@ -1130,12 +1245,27 @@ $("#selectAll").click(function () {
 $("#applySelectAll").click(function () {
 
     if (!selectMode) {
-        $(":checkbox").each(function (i) {
+        $(":checkbox[name='applyManage_checkbox']").each(function (i) {
             $(this).attr('checked', 'checked');
         });
         selectMode = true;
     } else {
-        $(":checkbox").each(function (i) {
+        $(":checkbox[name='applyManage_checkbox']").each(function (i) {
+            $(this).removeAttr('checked');
+        });
+        selectMode = false;
+    }
+
+});
+$("#messagePushManagement_selectAll").click(function () {
+
+    if (!selectMode) {
+        $(":checkbox[name='messagePush_checkbox']").each(function (i) {
+            $(this).attr('checked', 'checked');
+        });
+        selectMode = true;
+    } else {
+        $(":checkbox[name='messagePush_checkbox']").each(function (i) {
             $(this).removeAttr('checked');
         });
         selectMode = false;
@@ -1179,11 +1309,11 @@ $("#addEntityItem").click(function () {
 
 });
 $("#addEntityHuman_addBtn").click(function () {
-    switch (parseInt($("#addEntityHuman_manageType").val())){
+    switch (parseInt($("#addEntityHuman_manageType").val())) {
         case 0 :
-            if($("#addEntityHuman_school").val() && $("#addEntityHuman_grade").val() && $("#addEntityHuman_class").val()
-            && $("#addEntityHuman_humanName").val() && faceImg && $("#addEntityHuman_parentName").val()
-            && $("#addEntityHuman_parentTel").val()){
+            if ($("#addEntityHuman_school").val() && $("#addEntityHuman_grade").val() && $("#addEntityHuman_class").val()
+                && $("#addEntityHuman_humanName").val() && faceImg && $("#addEntityHuman_parentName").val()
+                && $("#addEntityHuman_parentTel").val()) {
                 out = JSON.stringify({
                     humanID: loginID,
                     humanName: $("#addEntityHuman_humanName").val(),
@@ -1220,12 +1350,12 @@ $("#addEntityHuman_addBtn").click(function () {
                         }
                     }
                 )
-            }else{
+            } else {
                 showMessage('信息录入不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
             break;
         case 1:
-            if(faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()){
+            if (faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -1258,13 +1388,13 @@ $("#addEntityHuman_addBtn").click(function () {
                         }
                     }
                 )
-            }else{
+            } else {
                 showMessage('信息录入不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
             break;
         case 2:
-            if(faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()
-            && $("#addEntityHuman_school").val()){
+            if (faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()
+                && $("#addEntityHuman_school").val()) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -1298,13 +1428,13 @@ $("#addEntityHuman_addBtn").click(function () {
                         }
                     }
                 )
-            }else{
+            } else {
                 showMessage('信息录入不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
             break;
         case 3:
-            if(faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()
-                && $("#addEntityHuman_school").val()  && $("#addEntityHuman_grade").val() && $("#addEntityHuman_class").val()){
+            if (faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()
+                && $("#addEntityHuman_school").val() && $("#addEntityHuman_grade").val() && $("#addEntityHuman_class").val()) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -1340,13 +1470,13 @@ $("#addEntityHuman_addBtn").click(function () {
                         }
                     }
                 )
-            }else{
+            } else {
                 showMessage('信息录入不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
             break;
         case 4:
-            if(faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()
-                && $("#addEntityHuman_school").val()){
+            if (faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()
+                && $("#addEntityHuman_school").val()) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -1380,12 +1510,12 @@ $("#addEntityHuman_addBtn").click(function () {
                         }
                     }
                 )
-            }else{
+            } else {
                 showMessage('信息录入不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
             break;
         case 5:
-            if(faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()){
+            if (faceImg && $("#addEntityHuman_humanName").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -1418,13 +1548,13 @@ $("#addEntityHuman_addBtn").click(function () {
                         }
                     }
                 )
-            }else{
+            } else {
                 showMessage('信息录入不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
             break;
         case 6:
-            if($("#addEntityHuman_humanName").val() && faceImg && $("#addEntityHuman_parentName").val()
-                && $("#addEntityHuman_parentTel").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val() ){
+            if ($("#addEntityHuman_humanName").val() && faceImg && $("#addEntityHuman_parentName").val()
+                && $("#addEntityHuman_parentTel").val() && $("#addEntityHuman_tel").val() && $("#addEntityHuman_password").val()) {
                 out = JSON.stringify({
                     humanID: loginID,
                     humanName: $("#addEntityHuman_humanName").val(),
@@ -1460,7 +1590,7 @@ $("#addEntityHuman_addBtn").click(function () {
                         }
                     }
                 )
-            }else{
+            } else {
                 showMessage('信息录入不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
             break;
@@ -1527,7 +1657,7 @@ $("#addEntityGrade_addBtn").click(function () {
                     for (var i = 0; i < schoolData.length; i++) {
                         if (schoolIDValue == schoolData[i].schoolID) {
                             pageContent = schoolData[i].gradeInfo;
-                            currentPageNum =1;
+                            currentPageNum = 1;
                             changePage(currentManageType, pageContent, 1, pageItemsNum);
                             pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                             initPagination(pageTotalNum);
@@ -1575,7 +1705,7 @@ $("#addEntityClass_addBtn").click(function () {
                             for (var j = 0; j < gradeInfo.length; j++) {
                                 if (gradeIDValue == gradeInfo[j].gradeID) {
                                     pageContent = gradeInfo[j].classInfoList;
-                                    currentPageNum =1;
+                                    currentPageNum = 1;
                                     changePage(currentManageType, pageContent, 1, pageItemsNum);
                                     pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                                     initPagination(pageTotalNum);
@@ -1618,7 +1748,7 @@ $("#addEntityFacility_addBtn").click(function () {
                     for (var i = 0; i < schoolData.length; i++) {
                         if (schoolIDValue == schoolData[i].schoolID) {
                             pageContent = schoolData[i].macInfo;
-                            currentPageNum =1;
+                            currentPageNum = 1;
                             changePage(currentManageType, pageContent, 1, pageItemsNum);
                             pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                             initPagination(pageTotalNum);
@@ -1636,6 +1766,97 @@ $("#addEntityFacility_addBtn").click(function () {
         }
     )
 });
+$("#addNewMessageBtn").click(function () {
+    var pichSchool = $("#messagePush_pichSchool");
+    pichSchool.html('');
+    if(loginHuman.managerType =='1'){
+        for(var i =0;i<schoolData.length;i++){
+            var temp = " <option value='"+schoolData[i].schoolID+"' >"+schoolData[i].schoolName+"</option>";
+            pichSchool.append(temp);
+        }
+    }else{
+        pichSchool.html('');
+    }
+    $("#addNewMessage").foundation('open');
+})
+$("#messagePush_uploadBtn").click(function () {
+    if ($("#messagePush_context").val().length > 500 || $("#messagePush_messageTarget").val().length == 0) {
+        showMessage('消息内容不符合要求！请在500字以内', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+        return;
+    }
+    if (uploadMessage.get("file")) {
+        if ($("#messagePush_context").val()) {
+            uploadMessage.append('content', $("#messagePush_context").val());
+            uploadMessage.append('noticeType', parseInt($("#messagePush_messageTarget").val()));
+            if (parseInt(loginHuman.managerType) == 1 && $("#messagePush_pichSchool").val()) {
+                uploadMessage.append('schoolID', parseInt($("#messagePush_pichSchool").val()));
+            } else if (parseInt(loginHuman.managerType) != 1) {
+                uploadMessage.append('schoolID', parseInt(loginHuman.schoolID));
+            } else {
+                showMessage('信息不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+                return;
+            }
+        } else {
+            showMessage('信息不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+            return;
+        }
+        console.log(uploadMessage.get("schoolID"));
+        zeroModal.loading(6);
+        $.ajax({
+            type: "post",
+            url: serverPath + "uploadDownload/uploadnotice",
+            // url:'http://192.168.43.240:8080/deliver/uploadDownload/uploadnotice',
+            data: uploadMessage,
+            processData: false,
+            contentType: false,
+            success: function (data) {
+                zeroModal.closeAll();
+                showMessage(data.message, 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+                uploadMessage = new FormData();
+                $("#messagePush_FileName").val('');
+                $("#addNewMessage").foundation('close');
+            },
+            error: function () {
+                zeroModal.closeAll();
+                showMessage('操作失败！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+            }
+        });
+    } else {
+        var message_schoolid = '';
+        if (parseInt(loginHuman.managerType) == 1 && $("#messagePush_pichSchool").val()) {
+            message_schoolid = parseInt($("#messagePush_pichSchool").val());
+        } else if (parseInt(loginHuman.managerType) != 1) {
+            message_schoolid = parseInt(loginHuman.schoolID);
+        }
+        zeroModal.loading(6);
+        $.ajax(
+            {
+                url: serverPath + "uploadDownload/sendnotice",
+                async: true,
+                type: 'POST',
+                contentType: "application/json;charset=utf-8",
+                data: JSON.stringify({
+                    content: $("#messagePush_context").val(),
+                    noticeType: parseInt($("#messagePush_messageTarget").val()),
+                    schoolID: message_schoolid
+                }),
+                dataType: "json",
+                success: function (data) {
+                    zeroModal.closeAll();
+                    showMessage(data.message, 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+                    uploadMessage = new FormData();
+                    $("#messagePush_FileName").val('');
+                    $("#addNewMessage").foundation('close');
+                },
+                error: function (xhr) {
+                    zeroModal.closeAll();
+                    showMessage('操作失败！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+                }
+            }
+        )
+    }
+
+});
 
 //实体管理修改信息保存按钮事件
 $("#editEntityHuman_saveBtn").click(function () {
@@ -1645,7 +1866,7 @@ $("#editEntityHuman_saveBtn").click(function () {
     var data = '';
     if ($("#editFaceChangeFlag").val() == "true") {
 
-        switch (parseInt($("#editEntityHuman_manageType").val())){
+        switch (parseInt($("#editEntityHuman_manageType").val())) {
             case 0:
                 data = JSON.stringify({
                     humanID: $("#editEntityHuman_humanID").val(),
@@ -1711,7 +1932,7 @@ $("#editEntityHuman_saveBtn").click(function () {
                 break;
         }
     } else {
-        switch (parseInt($("#editEntityHuman_manageType").val())){
+        switch (parseInt($("#editEntityHuman_manageType").val())) {
             case 0:
                 data = JSON.stringify({
                     humanID: $("#editEntityHuman_humanID").val(),
@@ -1853,7 +2074,7 @@ $("#editEntityGrade_saveBtn").click(function () {
                     for (var i = 0; i < schoolData.length; i++) {
                         if (schoolIDValue == schoolData[i].schoolID) {
                             pageContent = schoolData[i].gradeInfo;
-                            currentPageNum =1;
+                            currentPageNum = 1;
                             changePage(currentManageType, pageContent, 1, pageItemsNum);
                             pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                             initPagination(pageTotalNum);
@@ -1902,7 +2123,7 @@ $("#editEntityClass_saveBtn").click(function () {
                             for (var j = 0; j < gradeInfo.length; j++) {
                                 if (gradeIDValue == gradeInfo[j].gradeID) {
                                     pageContent = gradeInfo[j].classInfoList;
-                                    currentPageNum =1;
+                                    currentPageNum = 1;
                                     changePage(currentManageType, pageContent, 1, pageItemsNum);
                                     pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                                     initPagination(pageTotalNum);
@@ -1946,7 +2167,7 @@ $("#editEntityFacility_addBtn").click(function () {
                     for (var i = 0; i < schoolData.length; i++) {
                         if (schoolIDValue == schoolData[i].schoolID) {
                             pageContent = schoolData[i].macInfo;
-                            currentPageNum =1;
+                            currentPageNum = 1;
                             changePage(currentManageType, pageContent, 1, pageItemsNum);
                             pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                             initPagination(pageTotalNum);
@@ -1977,7 +2198,7 @@ $("#deleteEntityItem").click(function () {
                     selectedItem.add(parseInt($(this).attr('id')));
                 }
             });
-            if (selectedItem.dataStore.length>0) {
+            if (selectedItem.dataStore.length > 0) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -2014,7 +2235,7 @@ $("#deleteEntityItem").click(function () {
                     selectedItem.add(parseInt($(this).attr('id')));
                 }
             });
-            if (selectedItem.dataStore.length >0) {
+            if (selectedItem.dataStore.length > 0) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -2053,7 +2274,7 @@ $("#deleteEntityItem").click(function () {
                     selectedItem.add(parseInt($(this).attr('id')));
                 }
             });
-            if (selectedItem.dataStore.length >0) {
+            if (selectedItem.dataStore.length > 0) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -2075,7 +2296,7 @@ $("#deleteEntityItem").click(function () {
                                 for (var i = 0; i < schoolData.length; i++) {
                                     if (schoolIDValue == schoolData[i].schoolID) {
                                         pageContent = schoolData[i].gradeInfo;
-                                        currentPageNum =1;
+                                        currentPageNum = 1;
                                         changePage(currentManageType, pageContent, 1, pageItemsNum);
                                         pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                                         initPagination(pageTotalNum);
@@ -2103,7 +2324,7 @@ $("#deleteEntityItem").click(function () {
                     selectedItem.add(parseInt($(this).attr('id')));
                 }
             });
-            if (selectedItem.dataStore.length >0) {
+            if (selectedItem.dataStore.length > 0) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -2129,7 +2350,7 @@ $("#deleteEntityItem").click(function () {
                                         for (var j = 0; j < gradeInfo.length; j++) {
                                             if (gradeIDValue == gradeInfo[j].gradeID) {
                                                 pageContent = gradeInfo[j].classInfoList;
-                                                currentPageNum =1;
+                                                currentPageNum = 1;
                                                 changePage(currentManageType, pageContent, 1, pageItemsNum);
                                                 pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                                                 initPagination(pageTotalNum);
@@ -2159,7 +2380,7 @@ $("#deleteEntityItem").click(function () {
                     selectedItem.add(parseInt($(this).attr('id')));
                 }
             });
-            if (selectedItem.dataStore.length >0) {
+            if (selectedItem.dataStore.length > 0) {
                 zeroModal.loading(6);
                 $.ajax(
                     {
@@ -2181,7 +2402,7 @@ $("#deleteEntityItem").click(function () {
                                 for (var i = 0; i < schoolData.length; i++) {
                                     if (schoolIDValue == schoolData[i].schoolID) {
                                         pageContent = schoolData[i].macInfo;
-                                        currentPageNum =1;
+                                        currentPageNum = 1;
                                         changePage(currentManageType, pageContent, 1, pageItemsNum);
                                         pageTotalNum = Math.ceil(pageContent.length / pageItemsNum);
                                         initPagination(pageTotalNum);
@@ -2209,6 +2430,47 @@ $("#deleteEntityItem").click(function () {
     }
     ;
 });
+$("#messagePushManagement_deleteEntityItem").click(function () {
+    // if (!(selectedItem.size && selectedItem.size >0)) {
+    //     showMessage('请勾选需要删除的内容！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+    //     return;
+    // }
+    selectedItem = new Set();
+    $(":checkbox[name='messagePush_checkbox']").each(function (i) {
+        if ($(this).prop('checked')) {
+            selectedItem.add(parseInt($(this).attr('id')));
+        }
+    });
+    if (selectedItem.dataStore.length > 0) {
+        zeroModal.loading(6);
+        $.ajax(
+            {
+                url: serverPath + 'notice/delnotice',
+                async: true,
+                type: 'POST',
+                contentType: "application/json;charset=utf-8",
+                data: JSON.stringify({
+                    noticeID: selectedItem.dataStore
+                }),
+                dataType: "json",
+                success: function (data) {
+                    zeroModal.closeAll();
+                    showMessage(data.message, 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+                    if (data.success) {
+                        $("#messagePush_searchBtn").click();
+                        selectedItem = new Set();
+                    }
+                },
+                error: function (xhr) {
+                    zeroModal.closeAll();
+                    showMessage('查询失败！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+                }
+            }
+        )
+    } else {
+        showMessage('请勾选需要删除的内容！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
+    }
+})
 
 $("#applyApproval").click(function () {
     $(":checkbox[name='applyManage_checkbox']").each(function (i) {
@@ -2216,7 +2478,7 @@ $("#applyApproval").click(function () {
             selectedItem.add(parseInt($(this).attr('id')));
         }
     });
-    if (selectedItem.dataStore.length >0) {
+    if (selectedItem.dataStore.length > 0) {
         zeroModal.loading(6);
         $.ajax(
             {
@@ -2255,7 +2517,7 @@ $("#applyReject").click(function () {
             selectedItem.add(parseInt($(this).attr('id')));
         }
     });
-    if (selectedItem.dataStore.length >0) {
+    if (selectedItem.dataStore.length > 0) {
         zeroModal.loading(6);
         $.ajax(
             {
@@ -2290,118 +2552,124 @@ $("#applyReject").click(function () {
 });
 
 //文件上传事件
-$("#batchImportFileUpload").on('change',function (e) {
+$("#batchImportFileUpload").on('change', function (e) {
     var fileName = $('#batchImportFileUpload')[0].files[0].name;
     $("#picFileName").html(fileName);
-    uploadPic.append('file',$('#batchImportFileUpload')[0].files[0]);
+    uploadPic.append('file', $('#batchImportFileUpload')[0].files[0]);
 });
-$("#batchImportADUpload").on('change',function (e) {
+$("#batchImportADUpload").on('change', function (e) {
     var fileName = $('#batchImportADUpload')[0].files[0].name;
     $("#adFileName").html(fileName);
-    uploadAD.append('file',$('#batchImportADUpload')[0].files[0]);
+    uploadAD.append('file', $('#batchImportADUpload')[0].files[0]);
 });
-$("#uploadApp").on('change',function (e) {
+$("#uploadApp").on('change', function (e) {
     var fileName = $('#uploadApp')[0].files[0].name;
     $("#appFileName").html(fileName);
-    uploadApp.append('file',$('#uploadApp')[0].files[0]);
+    uploadApp.append('file', $('#uploadApp')[0].files[0]);
+});
+$("#messagePush_upload").on('change', function (e) {
+    var fileName = $('#messagePush_upload')[0].files[0].name;
+    $("#messagePush_FileName").html(fileName);
+    uploadMessage.append('file', $('#messagePush_upload')[0].files[0]);
 });
 
-$("#batchImportFileUploadBtn").click(function (){
-    if(uploadPic.get("file")){
-        if($("#pichSchool").val()){
-            uploadPic.append('schoolID',parseInt($("#pichSchool").val()));
-        }else{
-            uploadPic.append('schoolID',parseInt(loginHuman.schoolID));
+$("#batchImportFileUploadBtn").click(function () {
+    if (uploadPic.get("file")) {
+        if ($("#pichSchool").val()) {
+            uploadPic.append('schoolID', parseInt($("#pichSchool").val()));
+        } else {
+            uploadPic.append('schoolID', parseInt(loginHuman.schoolID));
         }
         console.log(uploadPic.get("schoolID"));
         zeroModal.loading(6);
         $.ajax({
-            type:"post",
-            url:serverPath+"uploadDownload/batchupload",
-            data:uploadPic,
-            processData : false,
-            contentType : false,
-            success:function(data){
+            type: "post",
+            url: serverPath + "uploadDownload/batchupload",
+            data: uploadPic,
+            processData: false,
+            contentType: false,
+            success: function (data) {
                 zeroModal.closeAll();
                 showMessage(data.message, 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
                 uploadPic = new FormData();
                 $("#picFileName").html('');
             },
-            error:function(){
+            error: function () {
                 zeroModal.closeAll();
                 showMessage('操作失败！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
         });
-    }else{
+    } else {
         showMessage('请选择要上传的文件！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
     }
 
 });
 
-$("#batchImportADUploadBtn").click(function (){
-    if(uploadAD.get("file")){
-        if($("#adPichSchool").val()){
-            uploadAD.append('schoolID',parseInt($("#adPichSchool").val()));
-        }else{
-            uploadAD.append('schoolID',parseInt(loginHuman.schoolID));
+$("#batchImportADUploadBtn").click(function () {
+    if (uploadAD.get("file")) {
+        if ($("#adPichSchool").val()) {
+            uploadAD.append('schoolID', parseInt($("#adPichSchool").val()));
+        } else {
+            uploadAD.append('schoolID', parseInt(loginHuman.schoolID));
         }
         console.log(uploadAD.get("schoolID"));
         zeroModal.loading(6);
         $.ajax({
-            type:"post",
-            url:serverPath+"uploadDownload/uploadadvert",
-            data:uploadAD,
-            processData : false,
-            contentType : false,
-            success:function(data){
+            type: "post",
+            url: serverPath + "uploadDownload/uploadadvert",
+            data: uploadAD,
+            processData: false,
+            contentType: false,
+            success: function (data) {
                 zeroModal.closeAll();
                 showMessage(data.message, 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
                 uploadAD = new FormData();
                 $("#adFileName").html('');
             },
-            error:function(){
+            error: function () {
                 zeroModal.closeAll();
                 showMessage('操作失败！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
         });
-    }else{
+    } else {
         showMessage('请选择要上传的文件！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
     }
 });
 
-$("#uploadAppBtn").click(function (){
-    if(uploadApp.get("file")){
-        if($("#appVersion").val() && $("#appOS").val()){
-            uploadApp.append('versionNum',$("#appVersion").val());
-            uploadApp.append('Os',$("#appOS").val());
-        }else{
+$("#uploadAppBtn").click(function () {
+    if (uploadApp.get("file")) {
+        if ($("#appVersion").val() && $("#appOS").val()) {
+            uploadApp.append('versionNum', $("#appVersion").val());
+            uploadApp.append('Os', $("#appOS").val());
+        } else {
             showMessage('信息不全！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             return;
         }
         console.log(uploadApp.get("appVersion"));
         zeroModal.loading(6);
         $.ajax({
-            type:"post",
-            url:serverPath+"uploadDownload/uploadversion",
-            data:uploadApp,
-            processData : false,
-            contentType : false,
-            success:function(data){
+            type: "post",
+            url: serverPath + "uploadDownload/uploadversion",
+            data: uploadApp,
+            processData: false,
+            contentType: false,
+            success: function (data) {
                 zeroModal.closeAll();
                 showMessage(data.message, 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
                 uploadApp = new FormData();
                 $("#appFileName").html('');
             },
-            error:function(){
+            error: function () {
                 zeroModal.closeAll();
                 showMessage('操作失败！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
             }
         });
-    }else{
+    } else {
         showMessage('请选择要上传的文件！', 2000, true, 'bounceInUp-hastrans', 'bounceOutDown-hastrans');
     }
 
 });
+
 //mtree init
 (function ($, window, document, undefined) {
 

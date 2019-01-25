@@ -3,6 +3,7 @@ package com.deliver.dao;
 import com.deliver.entity.AccessRecord;
 import com.deliver.entity.DeliverRecord;
 import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,6 +18,7 @@ import java.util.List;
 @CacheConfig(cacheNames = "deliverRecord")
 public interface DeliverRecordDao extends JpaRepository<DeliverRecord, Integer> {
     //@Cacheable()  //查询缓存
+    @Cacheable(value="delivers")
     DeliverRecord findByDeliverID(int deliverID);
 
     /**
@@ -24,6 +26,7 @@ public interface DeliverRecordDao extends JpaRepository<DeliverRecord, Integer> 
      */
     //@CachePut()//往缓存中新增
     @Override
+    @CacheEvict(value="delivers", allEntries=true)
     DeliverRecord save(DeliverRecord deliverRecord);
 
     @Transactional   //事务管理

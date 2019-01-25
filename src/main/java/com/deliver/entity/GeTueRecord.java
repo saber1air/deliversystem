@@ -38,6 +38,17 @@ public class GeTueRecord extends BaseObject implements Serializable {
     @Column(columnDefinition="int default 0",nullable=true)
     private Integer accessType=0;
 
+    @Column(length = 255,nullable=true)
+    private String media; //  现场照
+
+    public String getMedia() {
+        return media;
+    }
+
+    public void setMedia(String media) {
+        this.media = media;
+    }
+
     public Integer getGetuiID() {
         return getuiID;
     }
@@ -122,6 +133,7 @@ public class GeTueRecord extends BaseObject implements Serializable {
                 ", remarks='" + remarks + '\'' +
                 ", schoolID=" + schoolID +
                 ", accessType=" + accessType +
+                ", media='" + media + '\'' +
                 '}';
     }
 }

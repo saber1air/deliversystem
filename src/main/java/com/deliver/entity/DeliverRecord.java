@@ -22,7 +22,7 @@ public class DeliverRecord extends BaseObject implements Serializable {
     @Column(nullable=true)
     private Integer parentID;
 
-    @Column(length = 3000,nullable=true)
+    @Column(length = 255,nullable=true)
     private String media; //  现场照
 
     @Column(columnDefinition="int default 1",nullable=true)

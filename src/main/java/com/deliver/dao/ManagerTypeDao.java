@@ -3,6 +3,7 @@ package com.deliver.dao;
 import com.deliver.entity.ManagerRegisterRecord;
 import com.deliver.entity.ManagerType;
 import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,16 +17,16 @@ import java.util.List;
  */
 @CacheConfig(cacheNames = "managerType")
 public interface ManagerTypeDao extends JpaRepository<ManagerType, Integer> {
-    @Cacheable()  //查询缓存
+    @Cacheable(value="managertypes")
     ManagerType findById(int id);
-
+    @Cacheable(value="managertypes")
     List<ManagerType> findByDeleteFlag(int id);
 
     /**
      * 新增或修改时
      */
-    @CachePut()//往缓存中新增
     @Override
+    @CacheEvict(value="managertypes", allEntries=true)
     ManagerType save(ManagerType managerType);
 
     @Transactional   //事务管理

@@ -90,7 +90,7 @@ public class ToInterface {
     	
         JSONObject result = new JSONObject();  
         result.put("image", imageStr);  
-        result.put("max_face_num", "20");  
+        result.put("max_face_num", "2");
         result.put("token", "token");            
           
         return result;  

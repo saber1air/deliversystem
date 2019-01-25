@@ -61,6 +61,33 @@ public class HumanInfo extends BaseObject implements Serializable {
     @Column(length = 40,nullable=true)
     private String clientID;
 
+    @Column(columnDefinition="int default 0",nullable=true)
+    private Integer deliverNotReadNum=0;
+    @Column(columnDefinition="int default 0",nullable=true)
+    private Integer noticeNotReadNum=0;
+
+    @Column(columnDefinition="int default 1",nullable=true)
+    private Integer receiveDeliverGetuiFlag=1;//0不接收，1接收
+
+    @Column(columnDefinition="int default 1",nullable=true)
+    private Integer receiveNoticeGetuiFlag=1;//0不接收，1接收
+
+    public Integer getDeliverNotReadNum() {
+        return deliverNotReadNum;
+    }
+
+    public void setDeliverNotReadNum(Integer deliverNotReadNum) {
+        this.deliverNotReadNum = deliverNotReadNum;
+    }
+
+    public Integer getNoticeNotReadNum() {
+        return noticeNotReadNum;
+    }
+
+    public void setNoticeNotReadNum(Integer noticeNotReadNum) {
+        this.noticeNotReadNum = noticeNotReadNum;
+    }
+
     public String getClientID() {
         return clientID;
     }
@@ -229,6 +256,22 @@ public class HumanInfo extends BaseObject implements Serializable {
         this.token = token;
     }
 
+    public Integer getReceiveDeliverGetuiFlag() {
+        return receiveDeliverGetuiFlag;
+    }
+
+    public void setReceiveDeliverGetuiFlag(Integer receiveDeliverGetuiFlag) {
+        this.receiveDeliverGetuiFlag = receiveDeliverGetuiFlag;
+    }
+
+    public Integer getReceiveNoticeGetuiFlag() {
+        return receiveNoticeGetuiFlag;
+    }
+
+    public void setReceiveNoticeGetuiFlag(Integer receiveNoticeGetuiFlag) {
+        this.receiveNoticeGetuiFlag = receiveNoticeGetuiFlag;
+    }
+
     @Override
     public String toString() {
         return "HumanInfo{" +
@@ -253,6 +296,10 @@ public class HumanInfo extends BaseObject implements Serializable {
                 ", managerFlag=" + managerFlag +
                 ", token='" + token + '\'' +
                 ", clientID='" + clientID + '\'' +
+                ", deliverNotReadNum=" + deliverNotReadNum +
+                ", noticeNotReadNum=" + noticeNotReadNum +
+                ", receiveDeliverGetuiFlag=" + receiveDeliverGetuiFlag +
+                ", receiveNoticeGetuiFlag=" + receiveNoticeGetuiFlag +
                 '}';
     }
 }

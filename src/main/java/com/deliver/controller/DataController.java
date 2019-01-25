@@ -54,11 +54,14 @@ public class DataController {
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");//设置日期格式
         String date = df.format(new Date());// new Date()为获取当前系统时间，也可使用当前时间戳
 
+        HumanInfo parentInfo = null;
+
         if(deliverDatalist!=null && deliverDatalist.size()>0){
             for(int i=0;i<deliverDatalist.size();i++){
                 Map<String,Object> dataMap = deliverDatalist.get(i);
                 if(dataMap.get("parentID")!=null && (Integer)dataMap.get("parentID")!=-1 && (Integer)dataMap.get("parentID")!=0){
                     HumanInfo human = humanInfoService.findByHumanID((Integer) dataMap.get("parentID"));
+                    parentInfo = human;
                     Integer accessType = (Integer) dataMap.get("accessType");
                     if(human!=null){
                         human.setAtschoolFlag((Integer) dataMap.get("accessType"));
@@ -80,12 +83,31 @@ public class DataController {
                         if(dataMap.get("schoolID")!=null)
                             atSchoolRecord.setSchoolID((Integer) dataMap.get("schoolID"));
                         atSchoolRecordService.save(atSchoolRecord);
+
+
                     }
 
                 }
 
+                String photoName = "school/"+(Integer) dataMap.get("schoolID")+"/scene/";
+                if((Integer) dataMap.get("studentID")!=null && (Integer) dataMap.get("studentID")!=-1
+                        && (Integer) dataMap.get("studentID")!=-2){
+                    photoName+=(Integer) dataMap.get("studentID") + date + ".png";
+                }else if(dataMap.get("parentID")!=null && (Integer) dataMap.get("parentID")!=-1
+                        && (Integer) dataMap.get("parentID")!=-2){
+                    photoName+=(Integer) dataMap.get("parentID") + date + ".png";
+                }else{
+                    photoName+=(Integer) dataMap.get("parentID") + date + ".png";
+                }
+                DeliverRecord deliverRecord = new DeliverRecord();
+                if(dataMap.get("img")!=null){
+                    Base64Img.base64StrToImage(dataMap.get("img").toString(),mImagesPath + photoName);
+                    deliverRecord.setMedia("images/"+photoName);
+                }
+
                 if((Integer) dataMap.get("studentID")!=null && (Integer) dataMap.get("studentID")!=-1 && (Integer) dataMap.get("studentID")!=0){
                     HumanInfo human = humanInfoService.findByHumanID((Integer) dataMap.get("studentID"));
+
                     if(human!=null){
                         human.setAtschoolFlag((Integer) dataMap.get("accessType"));
                         humanInfoService.save(human);
@@ -106,25 +128,56 @@ public class DataController {
                         if(dataMap.get("schoolID")!=null)
                             atSchoolRecord.setSchoolID((Integer) dataMap.get("schoolID"));
                         atSchoolRecordService.save(atSchoolRecord);
+
+                        if((Integer) dataMap.get("accessType")==1){
+                            String content = "";
+                            if((Integer) dataMap.get("deliverType")==0){
+                                content="尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                        sDateFormat.format(dataMap.get("deliverTime")) + "独自入园";
+                            }else if((Integer) dataMap.get("deliverType")==1){
+                                if(parentInfo!=null){
+                                    content="尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                            sDateFormat.format(dataMap.get("deliverTime")) + "由" + parentInfo.getHumanName() + "接送入园";
+                                    if(parentInfo.getHumanName()=="陌生人" || parentInfo.getHumanName().equals("陌生人")){
+                                        content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                                sDateFormat.format(dataMap.get("deliverTime")) + "由系统未录入家属接送入园";
+                                    }
+                                }else{
+                                    content="尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                            sDateFormat.format(dataMap.get("deliverTime")) + "独自入园";
+                                }
+                            }else if((Integer) dataMap.get("deliverType")==2){
+                                content="尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                        sDateFormat.format(dataMap.get("deliverTime")) + "校车接送入园";
+                            }
+                            deliverRecordService.deliverGeTuiAMRealTime((Integer)dataMap.get("studentID"),content,deliverRecord.getMedia());
+                        }else if((Integer) dataMap.get("accessType")==0){
+                            String content = "";
+                            if((Integer) dataMap.get("deliverType")==0){
+                                content="尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                        sDateFormat.format(dataMap.get("deliverTime")) + "独自出园";
+                            }else if((Integer) dataMap.get("deliverType")==1){
+                                if(parentInfo!=null){
+                                    content="尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                            sDateFormat.format(dataMap.get("deliverTime")) + "由" + parentInfo.getHumanName() + "接送出园";
+                                    if(parentInfo.getHumanName()=="陌生人" || parentInfo.getHumanName().equals("陌生人")){
+                                        content = "尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                                sDateFormat.format(dataMap.get("deliverTime")) + "由系统未录入家属接送出园";
+                                    }
+                                }else{
+                                    content="尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                            sDateFormat.format(dataMap.get("deliverTime")) + "独自出园";
+                                }
+                            }else if((Integer) dataMap.get("deliverType")==2){
+                                content="尊敬的家长，您的小孩" + human.getHumanName() + "于" +
+                                        sDateFormat.format(dataMap.get("deliverTime")) + "校车接送出园";
+                            }
+                            deliverRecordService.deliverGeTuiPMRealTime((Integer)dataMap.get("studentID"),content,deliverRecord.getMedia());
+                        }
                     }
 
                 }
-                String photoName = "school/"+(Integer) dataMap.get("schoolID")+"/scene/";
-                if((Integer) dataMap.get("studentID")!=null && (Integer) dataMap.get("studentID")!=-1
-                        && (Integer) dataMap.get("studentID")!=-2){
-                    photoName+=(Integer) dataMap.get("studentID") + date + ".png";
-                }else if(dataMap.get("parentID")!=null && (Integer) dataMap.get("parentID")!=-1
-                        && (Integer) dataMap.get("parentID")!=-2){
-                    photoName+=(Integer) dataMap.get("parentID") + date + ".png";
-                }else{
-                    photoName+=(Integer) dataMap.get("parentID") + date + ".png";
-                }
 
-                DeliverRecord deliverRecord = new DeliverRecord();
-                if(dataMap.get("img")!=null){
-                    Base64Img.base64StrToImage(dataMap.get("img").toString(),mImagesPath + photoName);
-                    deliverRecord.setMedia("images/"+photoName);
-                }
 
                 deliverRecord.setSchoolID((Integer) dataMap.get("schoolID"));
                 deliverRecord.setCheckresult((Integer) dataMap.get("checkResult"));

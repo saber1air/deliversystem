@@ -36,10 +36,20 @@ public class GeTuiRecordService {
     }
 
     public List<Map<String,Object>> geTuiRecordQuery(int humanid,String beginTime,String endTime){
-        String sql = "select c.access_type,c.getuiid,c.getui_time,c.message,c.remarks from " +
-                "tc_parent_student_rel a,tc_human_info b,tc_getui_record c \n" +
-                "where a.homeid="+humanid+" and a.humanid=b.humanid and b.human_type=0 and " +
-                "b.humanid=c.studentid";
+        String sql = "select * from tc_getui_record c where c.parentid= "+humanid;
+
+        //int start = (pageCurrent-1)*pageSize;
+        if(beginTime!=null && beginTime!="" && !beginTime.equals("")){
+            sql+=" and c.getui_time>=DATE_FORMAT('"+beginTime+"','%Y-%m-%d') ";
+        }
+        if(endTime!=null && endTime!="" && !endTime.equals("")){
+            sql+=" and c.getui_time<=DATE_FORMAT('"+endTime+"','%Y-%m-%d') ";
+        }
+        sql += "  ORDER BY getui_time DESC  limit 80";
+        return jdbcTemplate.queryForList(sql);
+    }
+    public long geTuiRecordCount(int humanid,String beginTime,String endTime){
+        String sql = "select count(*) as num from tc_getui_record c where c.parentid= "+humanid;
 
         if(beginTime!=null && beginTime!="" && !beginTime.equals("")){
             sql+=" and c.getui_time>=DATE_FORMAT('"+beginTime+"','%Y-%m-%d') ";
@@ -47,7 +57,7 @@ public class GeTuiRecordService {
         if(endTime!=null && endTime!="" && !endTime.equals("")){
             sql+=" and c.getui_time<=DATE_FORMAT('"+endTime+"','%Y-%m-%d') ";
         }
-        sql += " ORDER BY getui_time DESC";
-        return jdbcTemplate.queryForList(sql);
+        sql += "  ORDER BY getui_time DESC ";
+        return (Long) jdbcTemplate.queryForList(sql).get(0).get("num");
     }
 }
