@@ -568,9 +568,14 @@ public class ManagerController {
             resultInfo.setMessage("新增失败，该人员已存在。");
             resultInfo.setSuccess(false);
             return resultInfo;*/
-            addHuman.setManagerFlag(1);
+            /*addHuman.setManagerFlag(1);
             addHuman.setManagerType(managerType);
-            addHuman=humanInfoService.editHumans(addHuman);
+            addHuman=humanInfoService.editHumans(addHuman);*/
+
+            resultInfo.setCode(400);
+            resultInfo.setMessage("新增失败，该人员已存在。");
+            resultInfo.setSuccess(false);
+            return resultInfo;
         }else{
             addHuman = new HumanInfo();
             addHuman.setHumanName(humanName);
@@ -1298,9 +1303,13 @@ public class ManagerController {
             resultInfo.setMessage("新增失败，该人员已存在。");
             resultInfo.setSuccess(false);
             return resultInfo;*/
-            addHuman.setManagerFlag(1);
+            /*addHuman.setManagerFlag(1);
             addHuman.setManagerType(managerType);
-            addHuman=humanInfoService.editHumans(addHuman);
+            addHuman=humanInfoService.editHumans(addHuman);*/
+            resultInfo.setCode(400);
+            resultInfo.setMessage("新增失败，该人员已存在。");
+            resultInfo.setSuccess(false);
+            return resultInfo;
         }else{
             addHuman = new HumanInfo();
             addHuman.setHumanName(humanName);
@@ -1343,6 +1352,10 @@ public class ManagerController {
             addHuman.setCheckFlag(1);
             addHuman=humanInfoService.saveHuman(addHuman);
             parenStudentRel.setCheckFlag(1);
+        }else{
+            resultInfo.setSuccess(false);
+            resultInfo.setCode(400);
+            resultInfo.setMessage("没有新增人员权限！");
         }
 
 
@@ -2157,23 +2170,19 @@ public class ManagerController {
         ResultInfo resultInfo = new ResultInfo(false);
         HumanInfo humanInfo = humanInfoService.findByHumanID(humanID);
         if(humanInfo.getManagerType()==3){
-            String sql = "select t.*,s.grade_name,s.grade_num,h.class_name,h.class_num,y.media_path,y.feature " +
-                    "from tc_human_info t,tc_human_media y,tc_grade_info s,tc_class_info h," +
-                    "(select a.humanid,count(*) as num from tc_human_media a where a.delete_flag=0 \n" +
-                    "and a.check_flag=1 and (a.feature is null or a.media_path='images/defaultImg.jpg') and a.phone_flag=0 " +
-                    "GROUP BY a.humanid HAVING num=1) x where t.humanid=x.humanid \n" +
-                    "and t.humanid=y.humanid and t.human_type=0 and t.gradeid=s.gradeid " +
-                    "and t.classid=h.classid and t.classid="+humanInfo.getClassID();
+            String sql = "select a.*,c.grade_name,c.grade_num,d.class_name,d.class_num,b.mediaid,b.media_path,b.feature \n" +
+                    "from tc_grade_info c,tc_class_info d,tc_human_info a LEFT JOIN tc_human_media b on a.humanid=b.humanid and b.delete_flag=0 \n" +
+                    "and b.show_flag=1 where a.delete_flag=0 and a.check_flag=1 and a.gradeid=c.gradeid and a.classid=d.classid and a.human_type=0 \n" +
+                    "and a.humanid in (select x.humanid from (select t.humanid,y.mediaid from tc_human_info t LEFT JOIN tc_human_media y \n" +
+                    "on y.phone_flag=0 and y.feature is not null and t.humanid=y.humanid ) x where x.mediaid is null) and a.classid="+humanInfo.getClassID();
             List<Map<String,Object>> humanList = jdbcTemplate.queryForList(sql);
             resultInfo.addData("humanList",humanList);
         }else if(humanInfo.getManagerType()==2){
-            String sql = "select t.*,s.grade_name,s.grade_num,h.class_name,h.class_num,y.media_path,y.feature " +
-                    "from tc_human_info t,tc_human_media y,tc_grade_info s,tc_class_info h," +
-                    "(select a.humanid,count(*) as num from tc_human_media a where a.delete_flag=0 \n" +
-                    "and a.check_flag=1 and (a.feature is null or a.media_path='images/defaultImg.jpg')  and a.phone_flag=0 " +
-                    "GROUP BY a.humanid HAVING num=1) x where t.humanid=x.humanid \n" +
-                    "and t.humanid=y.humanid and t.human_type=0 and t.gradeid=s.gradeid " +
-                    "and t.classid=h.classid and t.schoolid="+humanInfo.getSchoolID();
+            String sql = "select a.*,c.grade_name,c.grade_num,d.class_name,d.class_num,b.mediaid,b.media_path,b.feature \n" +
+                    "from tc_grade_info c,tc_class_info d,tc_human_info a LEFT JOIN tc_human_media b on a.humanid=b.humanid and b.delete_flag=0 \n" +
+                    "and b.show_flag=1 where a.delete_flag=0 and a.check_flag=1 and a.gradeid=c.gradeid and a.classid=d.classid and a.human_type=0 \n" +
+                    "and a.humanid in (select x.humanid from (select t.humanid,y.mediaid from tc_human_info t LEFT JOIN tc_human_media y \n" +
+                    "on y.phone_flag=0 and y.feature is not null and t.humanid=y.humanid ) x where x.mediaid is null) and a.schoolid="+humanInfo.getSchoolID();
             List<Map<String,Object>> humanList = jdbcTemplate.queryForList(sql);
             resultInfo.addData("humanList",humanList);
         }else{
@@ -2188,6 +2197,73 @@ public class ManagerController {
         return resultInfo;
 
 
+    }
+
+    /**
+     * 查询人员是否存在
+     */
+    @RequestMapping(value = "/isexisthuman")
+    @ResponseBody
+    public ResultInfo isExistHuman(@RequestBody Map<String, Object> jsonMap) throws Exception {
+        Integer schoolID = (Integer) jsonMap.get("schoolID");
+        Integer gradeID = (Integer) jsonMap.get("gradeID");
+        Integer classID = (Integer) jsonMap.get("classID");
+        Integer humanType = (Integer) jsonMap.get("humanType");
+        String tel = (String) jsonMap.get("tel");
+        String humanName = (String) jsonMap.get("humanName");
+        ResultInfo resultInfo = new ResultInfo(false);
+        if(humanType!=null && humanType!=-1){
+            if(humanType==0){
+                HumanInfo humanInfo = humanInfoService.findByHumanNameAndSchoolIDAndGradeIDAndClassID(humanName,schoolID,gradeID,classID);
+                if(humanInfo!=null){
+                    List<HumanMedia> humanMediaList = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlag(humanInfo.getHumanID(),0,1,1);
+
+                    resultInfo.addData("human",humanInfo);
+                    if(humanMediaList!=null && humanMediaList.size()>0){
+                        resultInfo.addData("media",humanMediaList.get(0));
+                    }
+                    resultInfo.setSuccess(true);
+                    resultInfo.setCode(200);
+                    resultInfo.setMessage("该学生已存在！");
+                    return resultInfo;
+                }
+            }else if(humanType==1 || humanType==2 || humanType==3 || humanType==4 || humanType==6 || humanType==7){
+                HumanInfo  humanInfo = humanInfoService.findByTel(tel);
+                if(humanInfo!=null){
+                    List<HumanMedia> humanMediaList = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlag(humanInfo.getHumanID(),0,1,1);
+
+                    resultInfo.addData("human",humanInfo);
+                    if(humanMediaList!=null && humanMediaList.size()>0){
+                        resultInfo.addData("media",humanMediaList.get(0));
+                    }
+                    resultInfo.setSuccess(true);
+                    resultInfo.setCode(200);
+                    resultInfo.setMessage("该手机已注册！");
+                    return resultInfo;
+                }
+            }else if(humanType==5){
+                List<HumanInfo>  humanInfoList = humanInfoService.findByCheckFlagAndSchoolIDAndTelAndDeleteFlag(1,schoolID,tel,0);
+                if(humanInfoList!=null && humanInfoList.size()>0){
+
+                    List<HumanMedia> humanMediaList = humanMediaService.findByHumanIDAndDeleteFlagAndCheckFlagAndShowFlag(humanInfoList.get(0).getHumanID(),0,1,1);
+
+                    resultInfo.addData("human",humanInfoList.get(0));
+                    if(humanMediaList!=null && humanMediaList.size()>0){
+                        resultInfo.addData("media",humanMediaList.get(0));
+                    }
+                    resultInfo.setSuccess(true);
+                    resultInfo.setCode(200);
+                    resultInfo.setMessage("该手机已注册！");
+                    return resultInfo;
+                }
+            }
+
+
+        }
+        resultInfo.setSuccess(false);
+        resultInfo.setCode(400);
+        resultInfo.setMessage("该人员没有注册！");
+        return resultInfo;
     }
 
 

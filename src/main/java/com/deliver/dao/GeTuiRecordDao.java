@@ -19,6 +19,9 @@ public interface GeTuiRecordDao extends JpaRepository<GeTueRecord, Integer> {
     @Cacheable(value="getuis")
     GeTueRecord findByGetuiID(int id);
 
+    @Cacheable(value="getuis")
+    GeTueRecord findByParentID(int id);
+
     /**
      * 新增或修改时
      */

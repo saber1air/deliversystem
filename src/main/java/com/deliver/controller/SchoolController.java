@@ -1,14 +1,8 @@
 package com.deliver.controller;
 
-import com.deliver.entity.ClassInfo;
-import com.deliver.entity.GradeInfo;
-import com.deliver.entity.MacInfo;
-import com.deliver.entity.School;
+import com.deliver.entity.*;
 import com.deliver.mapbody.DeliverParam;
-import com.deliver.service.ClassInfoService;
-import com.deliver.service.GradeInfoService;
-import com.deliver.service.MacInfoService;
-import com.deliver.service.SchoolService;
+import com.deliver.service.*;
 import com.deliver.util.ResultInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -38,6 +32,9 @@ public class SchoolController {
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private MacInfoService macInfoService;
+    @Autowired
+    private HumanInfoService humanInfoService;
+
 
 
     /**
@@ -115,6 +112,21 @@ public class SchoolController {
                     e.printStackTrace();
                 }
                 macInfoService.deleteBySchool(schoolIDs.get(i));
+
+                List<HumanInfo> humanInfoList = humanInfoService.findBySchoolIDAndDeleteFlagAndHumanType(schoolIDs.get(i),0,3);
+                if(humanInfoList!=null && humanInfoList.size()>0){
+                    for(HumanInfo humanInfo: humanInfoList){
+                        humanInfo.setDeleteFlag(1);
+                        humanInfoService.editHuman(humanInfo);
+                    }
+                }
+                List<HumanInfo> humanInfoList1 = humanInfoService.findBySchoolIDAndDeleteFlagAndHumanType(schoolIDs.get(i),0,2);
+                if(humanInfoList1!=null && humanInfoList1.size()>0){
+                    for(HumanInfo humanInfo: humanInfoList1){
+                        humanInfo.setDeleteFlag(1);
+                        humanInfoService.editHuman(humanInfo);
+                    }
+                }
             }
         }
         resultInfo.setMessage("删除成功！");

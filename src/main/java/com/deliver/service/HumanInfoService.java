@@ -70,6 +70,10 @@ public class HumanInfoService {
         return humanInfoDao.findByTelAndPasswordAndDeleteFlag(tel, password,0);
     }
 
+    public List<HumanInfo> findBySchoolIDAndDeleteFlagAndHumanType(int schoolID,int deleteFlag,int humanType){
+        return humanInfoDao.findBySchoolIDAndDeleteFlagAndHumanType(schoolID,deleteFlag,humanType);
+    }
+
     public List<Map<String,Object>> findByClassIDAndCheckFlagAndHumanType(int classID,int applyType){
         String sql = "";
         if(applyType==0){  //注册申请
@@ -142,6 +146,10 @@ public class HumanInfoService {
 
     public HumanInfo findByHumanNameAndSchoolIDAndGradeIDAndClassID(String humanName, int schoolID, int gradeID, int classID) {
         return humanInfoDao.findByHumanNameAndSchoolIDAndGradeIDAndClassIDAndDeleteFlag(humanName, schoolID, gradeID, classID,0);
+    }
+
+    public List<HumanInfo> findByCheckFlagAndSchoolIDAndTelAndDeleteFlag(int checkFlag,int schoolID,String tel,int deleteFlag){
+        return humanInfoDao.findByCheckFlagAndSchoolIDAndTelAndDeleteFlag(checkFlag,schoolID,tel,deleteFlag);
     }
 
     public ResultInfo sendSms(int code, String tel) throws ClientException {
@@ -288,50 +296,106 @@ public class HumanInfoService {
             }
         }
 */
-        sql = "select t.humanid,t.human_name,t.password,t.human_type,t.tel,t.create_time,t.manager_type,t.atschool_flag,\n" +
-                "a.mediaid,a.media_path,b.gradeid,b.grade_name,b.grade_num,c.classid,c.class_name,c.class_num,d.schoolid,\n" +
-                "d.school_name from tc_human_media a,tc_human_info t LEFT JOIN tc_school d on t.schoolid=d.schoolid \n" +
-                "LEFT JOIN tc_grade_info b on t.gradeid=b.gradeid LEFT JOIN tc_class_info c on t.classid=c.classid \n" +
-                "where t.check_flag=1 and a.check_flag=1 and a.show_flag=1 and t.delete_flag=0 and t.humanid=a.humanid and a.delete_flag=0 ";
-        if(humanType==0 || humanType==2 || humanType==3){
+        if(humanType != null && humanType!=1){
+            sql = "select t.humanid,t.human_name,t.password,t.human_type,t.tel,t.create_time,t.manager_type,t.atschool_flag,\n" +
+                    "a.mediaid,a.media_path,b.gradeid,b.grade_name,b.grade_num,c.classid,c.class_name,c.class_num,d.schoolid,\n" +
+                    "d.school_name from tc_human_media a,tc_human_info t LEFT JOIN tc_school d on t.schoolid=d.schoolid \n" +
+                    "LEFT JOIN tc_grade_info b on t.gradeid=b.gradeid LEFT JOIN tc_class_info c on t.classid=c.classid \n" +
+                    "where t.check_flag=1 and a.check_flag=1 and a.show_flag=1 and t.delete_flag=0 and t.humanid=a.humanid and a.delete_flag=0 ";
+            if(humanType==0 || humanType==2 || humanType==3 || humanType==5){
+                if (schoolID != null && schoolID != -1) {
+                    sql += " and t.schoolid =" + schoolID;
+                }
+            }
+
+            if(humanType==0 || humanType==2){
+                if (gradeID != null && gradeID != -1) {
+                    sql += " and b.gradeID =" + gradeID;
+                }
+            }
+
+            if(humanType==0 || humanType==2){
+                if (classID != null && classID != -1) {
+                    sql += " and c.classID =" + classID;
+                }
+            }
+
+            if (checkFlag != null && humanType > 0 && checkFlag != -1) {
+                sql += " and t.check_flag =" + checkFlag;
+            }
+            if (humanName != null && humanName != "") {
+                sql += " and t.human_name like '%" + humanName + "%'";
+            }
+
+            if (tel != null && humanType > 0 && tel != "") {
+                sql += " and t.tel ='" + tel + "'";
+            }
+            if (humanType != null && humanType != -1) {
+                sql += " and t.human_type =" + humanType;
+            }
+            if (atSchoolFlag != null && atSchoolFlag != -1) {
+                sql += " and t.atschool_flag =" + atSchoolFlag;
+            }
+            if (managerType != null && managerType != -1) {
+                sql += " and t.manager_type =" + managerType;
+            }
+        }else if(humanType==1){
+            sql ="select t.humanid,t.human_name,t.password,t.human_type,t.tel,t.create_time,t.manager_type,t.atschool_flag,\n" +
+                    "m.mediaid,m.media_path,b.gradeid,b.grade_name,b.grade_num,c.classid,c.class_name,c.class_num,d.schoolid,\n" +
+                    "d.school_name from tc_human_info t LEFT JOIN tc_human_media m on t.humanid=m.humanid and m.delete_flag=0 and m.check_flag=1 and m.show_flag=1 \n" +
+                    "LEFT JOIN tc_school d on t.schoolid=d.schoolid  LEFT JOIN tc_grade_info b on t.gradeid=b.gradeid LEFT JOIN tc_class_info c on t.classid=c.classid\n" +
+                    "where t.human_type=1 and t.delete_flag=0 and t.humanid in \n" +
+                    "(select DISTINCT p21.humanid as humanid from tc_human_info h2,tc_parent_student_rel p11,tc_parent_student_rel p21 \n" +
+                    "where h2.human_type=0 and p11.humanid=h2.humanid and p11.homeid=p21.homeid and h2.delete_flag=0 and h2.check_flag=1 and p11.delete_flag=0 ";
             if (schoolID != null && schoolID != -1) {
-                sql += " and t.schoolid =" + schoolID;
+                sql += " and h2.schoolid =" + schoolID;
             }
-        }
 
-        if(humanType==0 || humanType==2){
             if (gradeID != null && gradeID != -1) {
-                sql += " and b.gradeID =" + gradeID;
+                sql += " and h2.gradeID =" + gradeID;
             }
-        }
 
-        if(humanType==0 || humanType==2){
             if (classID != null && classID != -1) {
-                sql += " and c.classID =" + classID;
+                sql += " and h2.classID =" + classID;
+            }
+            sql += "  UNION \n" +
+                    "select DISTINCT p1.homeid as humanid from tc_human_info h1,tc_parent_student_rel p1 where h1.human_type=0 \n" +
+                    "and p1.humanid=h1.humanid and h1.delete_flag=0 and h1.check_flag=1 and p1.delete_flag=0 ";
+            if (schoolID != null && schoolID != -1) {
+                sql += " and h1.schoolid =" + schoolID;
+            }
+
+            if (gradeID != null && gradeID != -1) {
+                sql += " and h1.gradeID =" + gradeID;
+            }
+
+            if (classID != null && classID != -1) {
+                sql += " and h1.classID =" + classID;
+            }
+            sql += ") ";
+            if (checkFlag != null && humanType > 0 && checkFlag != -1) {
+                sql += " and t.check_flag =" + checkFlag;
+            }
+            if (humanName != null && humanName != "") {
+                sql += " and t.human_name like '%" + humanName + "%'";
+            }
+
+            if (tel != null && humanType > 0 && tel != "") {
+                sql += " and t.tel ='" + tel + "'";
+            }
+            if (humanType != null && humanType != -1) {
+                sql += " and t.human_type =" + humanType;
+            }
+            if (atSchoolFlag != null && atSchoolFlag != -1) {
+                sql += " and t.atschool_flag =" + atSchoolFlag;
+            }
+            if (managerType != null && managerType != -1) {
+                sql += " and t.manager_type =" + managerType;
             }
         }
 
-        if (checkFlag != null && humanType > 0 && checkFlag != -1) {
-            sql += " and t.check_flag =" + checkFlag;
-        }
-        if (humanName != null && humanName != "") {
-            sql += " and t.human_name like '%" + humanName + "%'";
-        }
 
-        if (tel != null && humanType > 0 && tel != "") {
-            sql += " and t.tel ='" + tel + "'";
-        }
-        if (humanType != null && humanType != -1) {
-            sql += " and t.human_type =" + humanType;
-        }
-        if (atSchoolFlag != null && atSchoolFlag != -1) {
-            sql += " and t.atschool_flag =" + atSchoolFlag;
-        }
-        if (managerType != null && managerType != -1) {
-            sql += " and t.manager_type =" + managerType;
-        }
-
-        sql += " ORDER BY t.humanid";
+        sql += " ORDER BY t.humanid DESC ";
         List<Map<String, Object>> humanlist = new ArrayList<Map<String,Object>>();
         if(humanType>=0){
             List<Map<String, Object>> humanlist1 = jdbcTemplate.queryForList(sql);

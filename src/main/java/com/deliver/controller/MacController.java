@@ -75,7 +75,7 @@ public class MacController {
     public ResultInfo addMacDevice(@RequestBody MacInfo macInfo){
         System.out.println(macInfo.getMacName());
 
-        MacInfo findedmac = macInfoService.findByMacName(macInfo.getMacName());
+        MacInfo findedmac = macInfoService.findByMacNameAndDeleteFlag(macInfo.getMacName(),0);
         if (findedmac != null){  // 如果已经存在mac就不在加入
             ResultInfo resultInfo = new ResultInfo(false);
             resultInfo.setMessage("400 已经存在mac address");
@@ -155,6 +155,12 @@ public class MacController {
             return resultInfo;
         }
         macInfoFull.setMacName(macInfo.getMacName());
+        if(macInfo.getZjPort()!=0){
+            macInfoFull.setZjPort(macInfo.getZjPort());
+        }
+        if(macInfo.getZjData()!=null){
+            macInfoFull.setZjData(macInfo.getZjData());
+        }
         macInfoFull.setSchoolID(macInfo.getSchoolID());
         macInfoFull.setUpdateTime(new Date());
         macInfoService.save(macInfoFull);
@@ -220,7 +226,7 @@ public class MacController {
         System.out.println(dateNow);
 
 //        MacInfo findedMac = macInfoService.findByMacName(macInfo.getMacName());
-        MacInfo findedMac = macInfoService.findByMacName(macName);
+        MacInfo findedMac = macInfoService.findByMacNameAndDeleteFlag(macName,0);
         if (findedMac == null){  // 如果不存在mac ，需要先将该mac 绑定学校
             ResultInfo resultInfo = new ResultInfo(false);
             resultInfo.setMessage("400 不存在mac address,先绑定该mac ");
@@ -418,7 +424,7 @@ public class MacController {
     @ResponseBody
     public ResultInfo checkMac(String macName){
         ResultInfo resultInfo = new ResultInfo(false);
-        MacInfo mac = macInfoService.findByMacName(macName);
+        MacInfo mac = macInfoService.findByMacNameAndDeleteFlag(macName,0);
         if(mac!=null){
             resultInfo.addData("mac",mac);
             resultInfo.setSuccess(true);

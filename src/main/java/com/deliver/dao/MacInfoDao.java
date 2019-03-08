@@ -25,7 +25,7 @@ public interface MacInfoDao extends JpaRepository<MacInfo, Integer> {
 
 //    @Cacheable()  //查询缓存
     @Cacheable(value="macs")
-    MacInfo findByMacName(String macName);
+    MacInfo findByMacNameAndDeleteFlag(String macName,int deleteFlag);
 
     //@Cacheable()  //查询缓存
     @Cacheable(value="macs")

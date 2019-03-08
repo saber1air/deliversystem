@@ -400,6 +400,39 @@ public class DeliverController {
     }
 
     /**
+     * 个推消息记录查询
+     */
+    @RequestMapping(value="/getuirecordquerybytime")
+    @ResponseBody
+    public ResultInfo geTuiRecordQueryByTime(@RequestBody Map<String,Object> jsonMap) throws Exception {
+        ResultInfo resultInfo = new ResultInfo(false);
+        Integer humanID = (Integer) jsonMap.get("humanID");
+        /*Integer pageCurrent = (Integer) jsonMap.get("pageCurrent");
+        Integer pageSize = (Integer) jsonMap.get("pageSize");*/
+        String beginTime = (String) jsonMap.get("beginTime");
+        String endTime = (String) jsonMap.get("endTime");
+        //String beginTime = deliverRecordService.getPastDate(30);//获取过去第七天的日期
+        /*if(pageCurrent==null || pageCurrent==-1){
+            pageCurrent=1;
+        }
+        if(pageSize==null || pageSize==-1){
+            pageSize=10;
+        }*/
+        List<Map<String,Object>> geTuilist = geTuiRecordService.geTuiRecordQueryByTime(humanID,beginTime,endTime);
+        /*long recordNum = geTuiRecordService.geTuiRecordCount(humanID,null,null);
+        long pageCount = recordNum/pageSize+1;*/
+        HumanInfo humanInfo = humanInfoService.findByHumanID(humanID);
+        List<Notice> noticeRecordList = noticeService.getNoticeRecord(humanInfo.getHumanID());
+        //resultInfo.addData("pageCount",pageCount);
+        resultInfo.addData("geTuilist",geTuilist);
+        resultInfo.addData("noticeRecordList",noticeRecordList);
+        resultInfo.setSuccess(true);
+        resultInfo.setCode(200);
+        resultInfo.setMessage("查询成功！");
+        return resultInfo;
+    }
+
+    /**
      * 家长或老师接送记录查询
      *
      */
@@ -447,6 +480,20 @@ public class DeliverController {
     }
 
     /**
+     * 按天查询学生接送记录
+     *
+     */
+    @RequestMapping(value="/getuirecordquerybyday")
+    @ResponseBody
+    public ResultInfo geTuiRecordQueryByDay(@RequestBody Map<String,Object> jsonMap) throws Exception {
+        ResultInfo resultInfo = new ResultInfo(false);
+        Integer humanID = (Integer) jsonMap.get("humanID");//家长ID
+        String dayTime = (String) jsonMap.get("dayTime");
+        resultInfo = geTuiRecordService.geTuiRecordQueryByDay(humanID,dayTime);
+        return resultInfo;
+    }
+
+    /**
      * 按月查单个学生每天的考勤情况
      *
      */
@@ -454,12 +501,29 @@ public class DeliverController {
     @ResponseBody
     public ResultInfo deliverRecordQueryByMonth(@RequestBody Map<String,Object> jsonMap) throws Exception{
         ResultInfo resultInfo = new ResultInfo(false);
-        Integer humanID = (Integer) jsonMap.get("humanID");//家长或老师的ID
+        Integer humanID = (Integer) jsonMap.get("humanID");//学生ID
         Integer humanType = (Integer) jsonMap.get("humanType");
         String humanName = (String) jsonMap.get("humanName");//小孩的名字
         String beginTime = (String) jsonMap.get("beginTime");
         String endTime = (String) jsonMap.get("endTime");
         resultInfo = deliverRecordService.studentDeliverRecordQueryByMonth(humanID,beginTime,endTime);
+        return resultInfo;
+    }
+
+    /**
+     * 按月查个推记录
+     *
+     */
+    @RequestMapping(value="/getuirecordquerybymonth")
+    @ResponseBody
+    public ResultInfo getTuiRecordQueryByMonth(@RequestBody Map<String,Object> jsonMap) throws Exception{
+        ResultInfo resultInfo = new ResultInfo(false);
+        Integer humanID = (Integer) jsonMap.get("humanID");//家长ID
+        Integer humanType = (Integer) jsonMap.get("humanType");
+        String humanName = (String) jsonMap.get("humanName");//小孩的名字
+        String beginTime = (String) jsonMap.get("beginTime");
+        String endTime = (String) jsonMap.get("endTime");
+        resultInfo = geTuiRecordService.getTuiRecordQueryByMonth(humanID,beginTime,endTime);
         return resultInfo;
     }
 

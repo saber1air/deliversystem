@@ -922,7 +922,7 @@ public class UploadDownloadController {
                 if (!filepathOs.getParentFile().exists()) {
                     filepathOs.getParentFile().mkdirs();
                 }
-                versionPath = "version/andriod/deliverapp.apk";
+                versionPath = "version/andriod/cherish_kindergarden.apk";
             }else if(Os=="ios" || Os.equals("ios")){
                 String pathOs = mImagesPath + "version/ios/";
                 File filepathOs = new File(pathOs);
@@ -930,7 +930,7 @@ public class UploadDownloadController {
                 if (!filepathOs.getParentFile().exists()) {
                     filepathOs.getParentFile().mkdirs();
                 }
-                versionPath = "version/ios/deliverapp.apk";
+                versionPath = "version/ios/cherish_kindergarden.apk";
             }else if(Os=="local" || Os.equals("local")){
                 String pathOs = mImagesPath + "version/local/";
                 File filepathOs = new File(pathOs);
@@ -938,7 +938,7 @@ public class UploadDownloadController {
                 if (!filepathOs.getParentFile().exists()) {
                     filepathOs.getParentFile().mkdirs();
                 }
-                versionPath = "version/local/deliverapp.apk";
+                versionPath = "version/local/cherish_kindergarden.apk";
             }
 
             FileInputStream ins = new FileInputStream(new File(path + File.separator + filename));

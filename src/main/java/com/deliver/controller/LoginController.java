@@ -58,7 +58,7 @@ public class LoginController {
         }
 
         if(phoneFlag!=null && phoneFlag==1){
-            MacInfo macInfo= macInfoService.findByMacName(macName);
+            MacInfo macInfo= macInfoService.findByMacNameAndDeleteFlag(macName,0);
             if(macInfo==null){
                 resultInfo.setCode(400);
                 resultInfo.setMessage("登陆失败！该机器未授权！");

@@ -29,6 +29,12 @@ public class MacInfo extends BaseObject implements Serializable {
     private Integer deleteFlag=0;
     @Column(nullable=true)
     private String remarks;
+    @Column(columnDefinition="int default 0",nullable=true)
+    private int zjPort=0;
+    @Column(nullable=true)
+    private String zjData;
+
+    private static final long serialVersionUID = 157483528558848834L;
 
     public Integer getMacID() {
         return macID;
@@ -86,6 +92,22 @@ public class MacInfo extends BaseObject implements Serializable {
         this.remarks = remarks;
     }
 
+    public int getZjPort() {
+        return zjPort;
+    }
+
+    public void setZjPort(int zjPort) {
+        this.zjPort = zjPort;
+    }
+
+    public String getZjData() {
+        return zjData;
+    }
+
+    public void setZjData(String zjData) {
+        this.zjData = zjData;
+    }
+
     @Override
     public String toString() {
         return "MacInfo{" +
@@ -96,6 +118,8 @@ public class MacInfo extends BaseObject implements Serializable {
                 ", updateTime=" + updateTime +
                 ", deleteFlag=" + deleteFlag +
                 ", remarks='" + remarks + '\'' +
+                ", zjPort='" + zjPort + '\'' +
+                ", zjData='" + zjData + '\'' +
                 '}';
     }
 }

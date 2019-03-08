@@ -8,6 +8,7 @@ import com.deliver.util.ResultInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 
 
@@ -24,8 +25,8 @@ public class MacInfoService {
         return macInfoDao.findByMacID(id);
     }
 
-    public MacInfo findByMacName(String macName) {
-        return macInfoDao.findByMacName(macName);
+    public MacInfo findByMacNameAndDeleteFlag(String macName,int deleteFlag) {
+        return macInfoDao.findByMacNameAndDeleteFlag(macName,deleteFlag);
     }
 
 
@@ -66,7 +67,15 @@ public class MacInfoService {
         return macInfoDao.deleteByMacID(id);
     }
 
-    public int deleteBySchool(int id) {
-        return macInfoDao.deleteByschoolID(id);
+    public boolean deleteBySchool(int id) {
+        List<MacInfo> macInfoList = macInfoDao.findBySchoolIDAndDeleteFlag(id,0);
+        if(macInfoList!=null && macInfoList.size()>0){
+            for(MacInfo macInfo:macInfoList){
+                macInfo.setDeleteFlag(1);
+                macInfo.setUpdateTime(new Date());
+                macInfoDao.save(macInfo);
+            }
+        }
+        return true;
     }
 }

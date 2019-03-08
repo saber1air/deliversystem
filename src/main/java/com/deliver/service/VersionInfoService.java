@@ -74,6 +74,8 @@ public class VersionInfoService {
             }
         }else{
             resultInfo.setCode(400);
+            resultInfo.addData("create_time",versionlist.get(0).get("create_time"));
+            resultInfo.addData("version_num",versionlist.get(0).get("version_num"));
             resultInfo.setMessage("已是最新版本！");
             resultInfo.setSuccess(false);
             return resultInfo;

@@ -64,6 +64,11 @@ public interface HumanInfoDao extends JpaRepository<HumanInfo, Integer> {
     List<HumanInfo> findByCheckFlagAndHumanTypeAndDeleteFlag(int checkFlag,int humanType,int deleteFlag);
     @Cacheable(value="humans")
     List<HumanInfo> findByCheckFlagAndHumanType(int checkFlag,int humanType);
+    @Cacheable(value="humans")
+    List<HumanInfo> findByCheckFlagAndSchoolIDAndTelAndDeleteFlag(int checkFlag,int schoolID,String tel,int deleteFlag);
+
+    @Cacheable(value="humans")
+    List<HumanInfo> findBySchoolIDAndDeleteFlagAndHumanType(int schoolID,int deleteFlag,int humanType);
 
     /**
      * 新增或修改时
